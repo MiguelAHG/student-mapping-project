@@ -29,26 +29,27 @@ student_df = pd.concat(
     axis = 0
 )
 
+# Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
+
+student_df = student_df.dropna(subset = ["barangay", "city_municipality", "province"])
+
+student_df = student_df.reset_index(drop = True)
+
 print("\nStudent data: ", student_df.columns.tolist())
 #%%
 # Save geodata as CSV
 (
     gdf
     [["NAME_0", "NAME_1", "NAME_2", "NAME_3"]]
-    .to_csv("./private/cleaning_outputs_private/gadm_location_names.csv")
+    .to_csv("./private/cleaning_outputs/gadm_location_names.csv")
 )
 
 # Save concatenated data for ABM students
-student_df.to_csv("./private/cleaning_outputs_private/abm_all_locations.csv")
-# %%
-student_df.isnull().sum()
+student_df.to_csv("./private/cleaning_outputs/abm_all_locations.csv")
 
 # %%
-# Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
+# This cell preprocesses both of the datasets and saves them to files.
 
-student_df = student_df.dropna(subset = ["barangay", "city_municipality", "province"])
-
-# %%
 # Dictionary mapping student location data labels to their GADM equivalents
 
 def preprocess_series(series):
@@ -101,8 +102,10 @@ label_dct = {
     "barangay": "NAME_3",
 }
 
-def full_preprocess(df, label_lst, save = False, filename = "new"):
-    """Fully preprocess a dataset, either student data or GADM."""
+def full_preprocess(df, label_lst, p_filename = None, c_filename = None):
+    """Fully preprocess a dataset, either student data or GADM.
+If p_filename is set, the preprocessed data is saved.
+If c_filename is set, a comparison of the original and preprocessed data will be saved to a file."""
 
     # Initial preprocessing
     df_preprocessed = (
@@ -119,32 +122,50 @@ def full_preprocess(df, label_lst, save = False, filename = "new"):
             .str.strip()
         )
 
-    # Append _preprocessed to labels
-    df_preprocessed.columns = [
-        label + "_preprocessed"
-        for label in df_preprocessed.columns
-    ]
+    if p_filename is not None:
+        # Save preprocessed data only.
+        df_preprocessed.to_csv(f"./private/cleaning_outputs/{p_filename}.csv")
 
-    # Put the original columns next to the preprocessed ones.
-    df_comparison = pd.concat(
-        [df[label_lst], df_preprocessed],
-        axis = 1,
-    )
+    if c_filename is not None:
+        # Save a table that compares the original location data to the preprocessed version.
 
-    if save:
-        df_comparison.to_csv(f"./private/cleaning_outputs_private/{filename}.csv")
+        # Append _preprocessed to labels
+        df_pp_copy = df_preprocessed.copy()
+        df_pp_copy.columns = [
+            label + "_preprocessed"
+            for label in df_preprocessed.columns
+        ]
 
-    return df_comparison
+        # Put the original columns next to the preprocessed ones.
+        df_comparison = pd.concat(
+            [df[label_lst], df_pp_copy],
+            axis = 1,
+        )
+
+        df_comparison.to_csv(f"./private/cleaning_outputs/{c_filename}.csv")
+
+    # Only return the preprocessed data.
+    return df_preprocessed
 
 # Student data preprocessing
 s_label_lst = list(label_dct.keys())
 
-student_df_comparison = full_preprocess(student_df, s_label_lst, save = True, filename = "student_df_comparison")
+student_df_pp = full_preprocess(
+    student_df,
+    s_label_lst,
+    p_filename = "student_df_preprocessed",
+    c_filename = "student_df_comparison",
+)
 
 # GADM data preprocessing
 g_label_lst = list(label_dct.values())
 
-gadm_df_comparison = full_preprocess(gdf, g_label_lst, save = True, filename = "gadm_df_comparison")
+gadm_df_pp = full_preprocess(
+    gdf,
+    g_label_lst,
+    p_filename = "gadm_df_preprocessed",
+    c_filename = "gadm_df_comparison",
+)
 
 # %%
 def get_ratio(s1, s2):
@@ -152,15 +173,34 @@ def get_ratio(s1, s2):
     ratio = Levenshtein.ratio(s1, s2)
     return ratio
 
-def find_matches(df_preprocessed):
-    """For each student location, find a match in GADM."""
+# For each student location, find a match in GADM.
 
-    for index, row in df_preprocessed.iterrows():
-        ratio_results = []
-        for s_label in s_label_lst:
+match_rows = []
+for s_index, s_row in student_df_pp.iterrows():
+    score_dct = {}
 
-            s_text = row[s_text]
+    for s_label in s_row.index:
+        s_text = s_row[s_label]
 
-            g_label = label_dct[s_label]
+        g_label = label_dct[s_label]
+        g_col = gadm_df_pp[g_label]
+        score_dct[g_label] = g_col.apply(get_ratio, s2 = s_text)
 
-            # in progress
+    score_df = pd.DataFrame(score_dct)
+
+    score_df["total"] = score_df.sum(axis = 1)
+    highest_score = score_df["total"].max()
+    g_index = score_df["total"].argmax()
+
+    g_row_orig = gdf.iloc[g_index].loc[g_label_lst + ["GID_3"]]
+    g_row_orig["score"] = highest_score
+    s_row_orig = student_df.iloc[s_index].loc[s_label_lst]
+
+    final_row = pd.concat([s_row_orig, g_row_orig], axis = 0)
+    match_rows.append(final_row)
+
+match_df = pd.DataFrame(match_rows)
+
+match_df.to_csv("./private/cleaning_outputs/matches.csv")
+
+match_df.head()
