@@ -99,7 +99,7 @@ preprocess_dct = {
 label_dct = {
     "province": "NAME_1",
     "city_municipality": "NAME_2",
-    "barangay": "NAME_3",
+    # "barangay": "NAME_3",
 }
 
 def full_preprocess(df, label_lst, p_filename = None, c_filename = None):
