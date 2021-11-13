@@ -13,18 +13,6 @@ def hazard_map_feature(finest_level, gdf):
     if "entries" not in st.session_state:
         st.session_state.entries = []
 
-    def add_button(level, cat, name, gid):
-        if st.button(f"Add entire {cat} to selection", key = f"button {level}"):
-
-            new_row = {
-                "level": level,
-                "category": cat,
-                "name": name,
-                "gid": gid,
-            }
-
-            st.session_state.entries.append(new_row)
-
     # Begin selection system
 
     cols = st.columns(2)
@@ -32,6 +20,20 @@ def hazard_map_feature(finest_level, gdf):
     with cols[0]:
 
         st.markdown("## Select Areas")
+
+        def add_button(level, cat, name, gid):
+            """Button that lets the user add the selected location to the hazard map layer. This is used in the location selector template."""
+
+            if st.button(f"Add entire {cat} to selection", key = f"button {level}"):
+
+                new_row = {
+                    "level": level,
+                    "category": cat,
+                    "name": name,
+                    "gid": gid,
+                }
+
+                st.session_state.entries.append(new_row)
 
         location_selector_template(finest_level, gdf, inner_func = add_button)
 
@@ -61,3 +63,15 @@ def hazard_map_feature(finest_level, gdf):
                 st.dataframe(selection_df.loc[:, ["name", "category"]])
             else:
                 st.markdown("No entries yet")
+    
+    # Saving and uploading
+    st.markdown("---\n\n## Saving and Uploading Options")
+
+    st.markdown("### Save Layer")
+    filename = st.text_input(
+        "Filename",
+        value = "new_layer",
+    )
+
+    if st.button("Save hazard map layer as CSV"):
+        pass
