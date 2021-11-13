@@ -2,51 +2,30 @@
 
 import pandas as pd
 import numpy as np
-import fiona
 import Levenshtein
 import geopandas as gpd
 
 #%% Get data
 gpkg = "./geo_data/gadm36_PHL.gpkg"
 
-# See list of layers in the GPKG.
-layers = fiona.listlayers(gpkg)
-print("GADM Layers: ", layers)
-
 # Use the finest layer, number 3
 gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
-print("\nGADM: ", gdf.columns.tolist())
 
 # Open the sample student location data.
-sheets = pd.read_excel(
-    "./private/student_location_data/sample_abm.xlsx",
-    sheet_name = None,
-)
-print("\nStudent sheets: ", sheets.keys())
-
-student_df = pd.concat(
-    [sheets["11ABM"], sheets["12ABM"]],
-    axis = 0
+student_df = pd.read_csv(
+    "./private/cleaning_outputs/abm_all_locations.csv"
 )
 
+#%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
 
-student_df = student_df.dropna(subset = ["barangay", "city_municipality", "province"])
-
-student_df = student_df.reset_index(drop = True)
-
-print("\nStudent data: ", student_df.columns.tolist())
-#%%
-# Save geodata as CSV
-(
-    gdf
-    [["NAME_0", "NAME_1", "NAME_2", "NAME_3"]]
-    .to_csv("./private/cleaning_outputs/gadm_location_names.csv")
+student_df = (
+    student_df
+    .dropna(subset = ["barangay", "city_municipality", "province"])
+    .reset_index(drop = True)
 )
 
-# Save concatenated data for ABM students
-student_df.to_csv("./private/cleaning_outputs/abm_all_locations.csv")
-
+student_df.columns
 # %%
 # This cell preprocesses both of the datasets and saves them to files.
 
@@ -71,13 +50,13 @@ preprocess_dct = {
     "city_municipality": lambda series: (
         series
         .str.replace(r" city$", "", regex = True)
-        .str.replace(r"^san\b", "saint", regex = True)
+        .str.replace(r"^((sto)|(sta)|(san)|(santo)|(santa))\b", "saint", regex = True)
     ),
     "barangay": lambda series: (
         series
         .str.replace(r"^((barangay)|(brgy)) ", "", regex = True)
         .str.replace(r"^((sto)|(sta)|(san)|(santo)|(santa))\b", "saint", regex = True)
-        .str.replace(r"^gen\b", "general", regex = True)
+        .str.replace(r"^[gh]en.?\b", "general", regex = True)
     ),
     "NAME_1": lambda series: (
         series
@@ -86,21 +65,29 @@ preprocess_dct = {
     "NAME_2": lambda series: (
         series
         .str.replace(r" city$", "", regex = True)
-        .str.replace(r"^((santo)|(santa))\b", "saint", regex = True)
+        .str.replace(r"^((sto)|(sta)|(san)|(santo)|(santa))\b", "saint", regex = True)
     ),
     "NAME_3": lambda series: (
         series
         .str.replace(r"^((barangay)|(bgy)|(bgy no)) ", "", regex = True)
-        .str.replace(r"^((st)|(santo)|(santa))\b", "saint", regex = True)
+        .str.replace(r"^((sto)|(sta)|(san)|(santo)|(santa))\b", "saint", regex = True)
     )
 }
 
 # Dictionary converting student data labels to their GADM equivalents
-label_dct = {
-    "province": "NAME_1",
-    "city_municipality": "NAME_2",
-    # "barangay": "NAME_3",
-}
+label_series = pd.Series(
+    {
+        "province": "NAME_1",
+        "city_municipality": "NAME_2",
+        "barangay": "NAME_3",
+    }
+)
+
+# Choose whether to go down to barangay level (3) or only city level (2).
+lowest_level = 3
+
+label_series = label_series.iloc[:lowest_level]
+gid_label = f"GID_{lowest_level}"
 
 def full_preprocess(df, label_lst, p_filename = None, c_filename = None):
     """Fully preprocess a dataset, either student data or GADM.
@@ -148,32 +135,34 @@ If c_filename is set, a comparison of the original and preprocessed data will be
     return df_preprocessed
 
 # Student data preprocessing
-s_label_lst = list(label_dct.keys())
+s_label_lst = label_series.index.tolist()
 
 student_df_pp = full_preprocess(
     student_df,
     s_label_lst,
-    p_filename = "student_df_preprocessed",
-    c_filename = "student_df_comparison",
+    # # Uncomment these to save files.
+    # p_filename = "student_df_preprocessed",
+    # c_filename = "student_df_comparison",
 )
 
 # GADM data preprocessing
-g_label_lst = list(label_dct.values())
+g_label_lst = label_series.tolist()
 
 gadm_df_pp = full_preprocess(
     gdf,
     g_label_lst,
-    p_filename = "gadm_df_preprocessed",
-    c_filename = "gadm_df_comparison",
+    # # Uncomment these to save files.
+    # p_filename = "gadm_df_preprocessed",
+    # c_filename = "gadm_df_comparison",
 )
 
 # %%
+# For each student location, find a match in GADM.
+
 def get_ratio(s1, s2):
     """Obtain Levenshtein ratio of two strings. Can be used in pd.Series.apply()"""
     ratio = Levenshtein.ratio(s1, s2)
     return ratio
-
-# For each student location, find a match in GADM.
 
 match_rows = []
 for s_index, s_row in student_df_pp.iterrows():
@@ -182,7 +171,7 @@ for s_index, s_row in student_df_pp.iterrows():
     for s_label in s_row.index:
         s_text = s_row[s_label]
 
-        g_label = label_dct[s_label]
+        g_label = label_series[s_label]
         g_col = gadm_df_pp[g_label]
         score_dct[g_label] = g_col.apply(get_ratio, s2 = s_text)
 
@@ -192,15 +181,22 @@ for s_index, s_row in student_df_pp.iterrows():
     highest_score = score_df["total"].max()
     g_index = score_df["total"].argmax()
 
-    g_row_orig = gdf.iloc[g_index].loc[g_label_lst + ["GID_3"]]
+    g_row_orig = gdf.iloc[g_index].loc[g_label_lst + [gid_label]]
     g_row_orig["score"] = highest_score
-    s_row_orig = student_df.iloc[s_index].loc[s_label_lst]
+    s_row_orig = (
+        student_df
+        .iloc[s_index]
+        .loc[
+            ["full_name", "obf_email"] + s_label_lst
+        ]
+    )
 
     final_row = pd.concat([s_row_orig, g_row_orig], axis = 0)
     match_rows.append(final_row)
 
 match_df = pd.DataFrame(match_rows)
 
+# Save the DF of matches
 match_df.to_csv("./private/cleaning_outputs/matches.csv")
 
 match_df.head()
