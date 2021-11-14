@@ -10,11 +10,11 @@ def hazard_map_feature(finest_level, gdf):
 
     # Set up list of selected areas affected by a hazard
     if "entries" not in st.session_state:
-        st.session_state.entries = []
+        st.session_state.entries = pd.DataFrame()
 
     def entries_present():
         """Returns True if there are entries recorded."""
-        result = len(st.session_state.entries) > 0
+        result = st.session_state.entries.shape[0] > 0
         return result
 
     # Uploading
@@ -36,7 +36,10 @@ def hazard_map_feature(finest_level, gdf):
 
         if st.button("Append this layer to the current layer"):
             list_of_dicts = up_df.to_dict(orient = "records")
-            st.session_state.entries.extend(list_of_dicts)
+            st.session_state.entries = pd.concat(
+                [st.session_state.entries, up_df],
+                axis = 0,
+            )
 
     st.markdown("---")
 
@@ -48,19 +51,25 @@ def hazard_map_feature(finest_level, gdf):
 
         st.markdown("## Select Areas")
 
-        def add_button(level, cat, name, gid):
+        def add_button(level, cat, cur_name, gid, name_list):
             """Button that lets the user add the selected location to the hazard map layer. This is used in the location selector template."""
 
             if st.button(f"Add entire {cat} to selection", key = f"button {level}"):
 
-                new_row = {
-                    "level": level,
-                    "category": cat,
-                    "name": name,
-                    "gid": gid,
-                }
+                full_location_name = ", ".join(reversed(name_list))
 
-                st.session_state.entries.append(new_row)
+                new_row = pd.Series(
+                    {
+                        "level": level,
+                        "category": cat,
+                        "name": full_location_name,
+                        "gid": gid,
+                    },
+                    # Set the name of the Series to the next index above the highest index in the DF of entries.
+                    name = st.session_state.entries.shape[0]
+                )
+
+                st.session_state.entries = st.session_state.entries.append(new_row)
 
         location_selector_template(finest_level, gdf, inner_func = add_button)
 
@@ -86,13 +95,21 @@ def hazard_map_feature(finest_level, gdf):
                 )
                 
                 if st.button("Delete the entry at the chosen row"):
-                    del st.session_state.entries[delete_index]
+                    st.session_state.entries.drop(
+                        delete_index,
+                        axis = 0,
+                        inplace = True,
+                    )
 
                 if st.button("Delete the most recently added entry"):
-                    del st.session_state.entries[-1]
+                    st.session_state.entries.drop(
+                        index = st.session_state.entries.index[-1],
+                        axis = 0,
+                        inplace = True,
+                    )
 
                 if st.button("Delete all entries"):
-                    st.session_state.entries = []
+                    st.session_state.entries = pd.DataFrame()
 
         # I used a new if-clause.
         # If a deletion action leaves the layer empty, this will immediately remove the deletion options and put a Warning instead.
@@ -104,8 +121,8 @@ def hazard_map_feature(finest_level, gdf):
     st.markdown("---\n\n## View Areas")
 
     if entries_present():
-        selection_df = pd.DataFrame(st.session_state.entries)
-        st.dataframe(selection_df.loc[:, ["name", "category"]])
+        display_entries_df = st.session_state.entries.loc[:, ["name", "category"]]
+        st.dataframe(display_entries_df)
     else:
         st.warning("No entries yet.")
 
@@ -124,7 +141,7 @@ def hazard_map_feature(finest_level, gdf):
             result = df.to_csv(index = False).encode("utf-8")
             return result
 
-        csv = convert_df_for_download(selection_df)
+        csv = convert_df_for_download(st.session_state.entries)
 
         st.download_button(
             "Download hazard map layer as CSV",

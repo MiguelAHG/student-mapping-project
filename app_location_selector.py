@@ -39,21 +39,21 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
         gid_label = f"GID_{level}"
         cat = categories[level]
 
-        name = st.selectbox(
+        cur_name = st.selectbox(
             cat.title(),
             options = gdf_subset[name_label].unique(),
             key = "/".join(gid_list),
         )
 
-        gdf_subset = gdf_subset.loc[gdf_subset[name_label] == name]
+        gdf_subset = gdf_subset.loc[gdf_subset[name_label] == cur_name]
 
         gid = (gdf_subset.loc[:, gid_label].iloc[0])
 
         gid_list.append(gid)
-        name_list.append(name)
+        name_list.append(cur_name)
 
         if inner_func is not None:
-            inner_func(level, cat, name, gid)
+            inner_func(level, cat, cur_name, gid, name_list)
 
     return gid, name_list
 
