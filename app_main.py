@@ -11,6 +11,7 @@ import streamlit as st
 from app_home import home_feature
 from app_hazard_map_layer_creator import hazard_map_feature
 from app_location_selector import location_selector_feature
+from app_report_generator import report_generator_feature
 
 # Cache the function that gets the data.
 @st.cache(suppress_st_warning = True, allow_output_mutation = True)
@@ -57,4 +58,4 @@ if __name__ == "__main__":
         hazard_map_feature(finest_level, gdf)
     
     elif feature == "Report Generator":
-        pass
+        report_generator_feature()
