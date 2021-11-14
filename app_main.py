@@ -13,12 +13,18 @@ from app_hazard_map_layer_creator import hazard_map_feature
 from app_location_selector import location_selector_feature
 from app_report_generator import report_generator_feature
 
-# Cache the function that gets the data.
 @st.cache(suppress_st_warning = True, allow_output_mutation = True)
 def get_data():
+    """Obtain needed data."""
+    # GADM data
     gpkg = "./geo_data/gadm36_PHL.gpkg"
     gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
-    return gdf
+
+    # Student location data
+    # Currently a local file, for testing only.
+    students_df = pd.read_csv("./private/app_testing/students.csv")
+
+    return gdf, students_df
 
 if __name__ == "__main__":
 
@@ -32,7 +38,7 @@ if __name__ == "__main__":
 
     st.title(f"ASHS Student-Hazard App {emoji}")
 
-    gdf = get_data()
+    gdf, students_df = get_data()
 
     # Set this to 3 for barangay and 2 for city.
     finest_level = 3
@@ -58,4 +64,4 @@ if __name__ == "__main__":
         hazard_map_feature(finest_level, gdf)
     
     elif feature == "Report Generator":
-        report_generator_feature()
+        report_generator_feature(finest_level, gdf, students_df)
