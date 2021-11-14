@@ -197,6 +197,9 @@ for s_index, s_row in student_df_pp.iterrows():
 match_df = pd.DataFrame(match_rows)
 
 # Save the DF of matches
-match_df.to_csv("./private/cleaning_outputs/matches.csv")
+match_df.to_csv(
+    "./private/cleaning_outputs/matches.csv",
+    index = False,
+)
 
 match_df.head()
