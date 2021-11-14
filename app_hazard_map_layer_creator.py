@@ -8,8 +8,7 @@ from app_location_selector import location_selector_template
 
 def hazard_map_feature(finest_level, gdf):
 
-    # Set up selection list
-
+    # Set up list of selected areas affected by a hazard
     if "entries" not in st.session_state:
         st.session_state.entries = []
 
@@ -70,23 +69,35 @@ def hazard_map_feature(finest_level, gdf):
         # df_container = st.container()
         st.markdown("## Delete Areas")
 
+        # An Empty contains one element, which may be replaced.
+        deletion_empty = st.empty()
+        
+        # If there are entries, give the user options to delete them.
         if entries_present():
-            # Let the user delete a chosen row.
-
-            delete_index = st.number_input(
-                "Choose a row number",
-                min_value = 0,
-                max_value = len(st.session_state.entries) - 1,
-                value = 0,
-            )
             
-            if st.button("Delete the entry at the chosen row"):
-                del st.session_state.entries[delete_index]
+            # Use a Container to place multiple widgets inside the Empty.
+            with deletion_empty.container():
 
-            if st.button("Delete all entries"):
-                st.session_state.entries = []
-        else:
-            st.warning("No entries yet.")
+                delete_index = st.number_input(
+                    "Choose a row number",
+                    min_value = 0,
+                    max_value = len(st.session_state.entries) - 1,
+                    value = 0,
+                )
+                
+                if st.button("Delete the entry at the chosen row"):
+                    del st.session_state.entries[delete_index]
+
+                if st.button("Delete the most recently added entry"):
+                    del st.session_state.entries[-1]
+
+                if st.button("Delete all entries"):
+                    st.session_state.entries = []
+
+        # I used a new if-clause.
+        # If a deletion action leaves the layer empty, this will immediately remove the deletion options and put a Warning instead.
+        if not entries_present():
+            deletion_empty.warning("No entries yet.")
     
     # Display the hazard map layer.
     # This must come last before saving so that it is immediately seen after any changes are made.
