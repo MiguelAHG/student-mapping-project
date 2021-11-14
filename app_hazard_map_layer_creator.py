@@ -71,7 +71,12 @@ def hazard_map_feature(finest_level, gdf):
 
                 st.session_state.entries = st.session_state.entries.append(new_row)
 
-        location_selector_template(finest_level, gdf, inner_func = add_button)
+        location_selector_template(
+            finest_level,
+            gdf,
+            inner_func = add_button,
+            key = "location selector - hazard map layer creator"
+        )
 
     with cols[1]:
 

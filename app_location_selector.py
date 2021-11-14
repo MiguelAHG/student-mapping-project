@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-def location_selector_template(finest_level, gdf, inner_func = None):
+def location_selector_template(finest_level, gdf, inner_func = None, key = "location_selector"):
     """Template function for location selector. Returns the GID and the list of the parts of the location name.
 inner_func: provide a function and it will be run at the bottom of each selectbox."""
 
@@ -42,7 +42,8 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
         cur_name = st.selectbox(
             cat.title(),
             options = gdf_subset[name_label].unique(),
-            key = "/".join(gid_list),
+            # Use a key so that multiple instances of location selectors are not connected.
+            key = key + " " + "/".join(gid_list),
         )
 
         gdf_subset = gdf_subset.loc[gdf_subset[name_label] == cur_name]
@@ -62,7 +63,12 @@ def location_selector_feature(finest_level, gdf):
 
     st.markdown("## Location Selector")
 
-    gid, name_list = location_selector_template(finest_level, gdf)
+    gid, name_list = location_selector_template(
+        finest_level,
+        gdf,
+        key = "location selector - feature",
+    )
+
     full_location_name = ", ".join(reversed(name_list))
 
     # Display the full location name and GID.
