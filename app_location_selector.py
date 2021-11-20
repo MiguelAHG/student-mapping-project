@@ -61,7 +61,7 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
 def location_selector_feature(finest_level, gdf):
     """The location selector page of the web app."""
 
-    st.markdown("## Location Selector")
+    st.markdown("# Location Selector")
 
     gid, name_list = location_selector_template(
         finest_level,

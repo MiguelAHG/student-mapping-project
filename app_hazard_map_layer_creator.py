@@ -17,6 +17,8 @@ def hazard_map_feature(finest_level, gdf):
         result = st.session_state.entries.shape[0] > 0
         return result
 
+    st.markdown("# Hazard Map Layer Creator")
+
     # Uploading
     st.markdown("## Upload Layer")
 
