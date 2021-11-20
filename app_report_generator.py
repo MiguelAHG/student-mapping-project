@@ -57,8 +57,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         affected_students_df = (
             students_df
             .loc[
-                # Mask of students affected by hazard
-                students_df[finest_label].isin(gid_set),
+                :, 
                 # Columns to take
                 [
                     "Student Name",
@@ -79,6 +78,14 @@ def report_generator_feature(finest_level, gdf, students_df):
             .reset_index(drop = True)
         )
 
+        affected_students_df["affected"] = False
+
+        affected_students_df.loc[
+            # Mask of students affected by hazard
+            students_df[finest_label].isin(gid_set),
+            "affected"
+        ] = True
+
         return affected_students_df
 
     affected_students_df = find_affected_students(finest_level, gdf, students_df)
@@ -86,7 +93,9 @@ def report_generator_feature(finest_level, gdf, students_df):
     st.markdown("## Report")
 
     perc_affected = round(
-        affected_students_df.shape[0] / students_df.shape[0] * 100,
+        affected_students_df["affected"].sum()
+        / affected_students_df.shape[0]
+        * 100,
         2
     )
 
@@ -95,8 +104,32 @@ def report_generator_feature(finest_level, gdf, students_df):
         value = f"{perc_affected}%"
     )
 
-    st.markdown("## Table of Students")         
-    st.dataframe(affected_students_df)
+    for strand_name in ["ABM", "GA", "HUMSS", "STEM"]:
+
+        strand_subset = affected_students_df.loc[affected_students_df["Strand"] == strand_name]
+        strand_total = strand_subset.shape[0]
+        strand_affected = strand_subset["affected"].sum()
+        strand_perc = round(
+            strand_affected / strand_total * 100,
+            2,
+        )
+
+        st.metric(
+            f"Percentage of {strand_name} Students Affected",
+            value = f"{strand_perc}%",
+        )
+
+    st.markdown("## Table of Students")
+
+    display_df = (
+        affected_students_df
+        # Only display affected students
+        .loc[affected_students_df["affected"]]
+        # Drop bool column
+        .drop("affected", axis = "columns")
+    )
+
+    st.dataframe(display_df)
 
     # Let the user save the table.
     st.markdown("## Save Table")
@@ -112,7 +145,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         result = df.to_csv(index = False).encode("utf-8")
         return result
 
-    csv = convert_df_for_download(affected_students_df)
+    csv = convert_df_for_download(display_df)
 
     st.download_button(
         "Download table of affected students as CSV",
