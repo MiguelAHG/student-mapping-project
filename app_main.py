@@ -38,6 +38,7 @@ if __name__ == "__main__":
 
     st.title(f"ASHS Student-Hazard App {emoji}")
 
+    # Password system. It disappears after the correct password is inputted.
     pw_empty = st.empty()
     
     pw_input = pw_empty.text_input(
@@ -48,8 +49,11 @@ if __name__ == "__main__":
     if pw_input == st.secrets["password"]:
         pw_empty.empty()
     else:
+        if pw_input != "":
+            st.warning("Incorrect password.")
         st.stop()
 
+    # Obtain data.
     gdf, students_df = get_data()
 
     # Set this to 3 for barangay and 2 for city.
