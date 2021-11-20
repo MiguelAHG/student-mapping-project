@@ -38,6 +38,18 @@ if __name__ == "__main__":
 
     st.title(f"ASHS Student-Hazard App {emoji}")
 
+    pw_empty = st.empty()
+    
+    pw_input = pw_empty.text_input(
+        "Password",
+        type = "password",
+    )
+
+    if pw_input == "amogus":
+        pw_empty.empty()
+    else:
+        st.stop()
+
     gdf, students_df = get_data()
 
     # Set this to 3 for barangay and 2 for city.
