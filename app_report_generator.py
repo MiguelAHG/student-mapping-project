@@ -11,10 +11,7 @@ def report_generator_feature(finest_level, gdf, students_df):
     st.markdown("# Report Generator")
 
     if ("entries" not in st.session_state) or (st.session_state.entries.shape[0] == 0):
-        st.warning("There are no loaded entries yet in the hazard map layer.")
-        st.stop()
-    
-    if not st.checkbox("Generate report"):
+        st.warning("There are no entries yet in the hazard map layer.")
         st.stop()
 
     @st.cache(suppress_st_warning = True)
@@ -55,7 +52,7 @@ def report_generator_feature(finest_level, gdf, students_df):
                 ]
                 gid_set.update(fine_gid_series)
 
-        affected_students_df = (
+        affected_df = (
             students_df
             .loc[
                 :, 
@@ -79,23 +76,21 @@ def report_generator_feature(finest_level, gdf, students_df):
             .reset_index(drop = True)
         )
 
-        affected_students_df["Affected"] = False
+        # Mask of students affected by hazard
+        affected_df["Affected_bool"] = students_df[finest_label].isin(gid_set)
 
-        affected_students_df.loc[
-            # Mask of students affected by hazard
-            students_df[finest_label].isin(gid_set),
-            "Affected"
-        ] = True
+        # Column of Yes or No strings
+        affected_df["Affected"] = affected_df["Affected_bool"].replace({True: "Yes", False: "No"})
 
-        return affected_students_df
+        return affected_df
 
-    affected_students_df = find_affected_students(finest_level, gdf, students_df)
+    affected_df = find_affected_students(finest_level, gdf, students_df)
 
     st.markdown("## Percentages")
 
     perc_affected = round(
-        affected_students_df["Affected"].sum()
-        / affected_students_df.shape[0]
+        affected_df["Affected_bool"].sum()
+        / affected_df.shape[0]
         * 100,
         2
     )
@@ -108,9 +103,9 @@ def report_generator_feature(finest_level, gdf, students_df):
     bullet_lst = []
     for strand_name in ["ABM", "GA", "HUMSS", "STEM"]:
 
-        strand_subset = affected_students_df.loc[affected_students_df["Strand"] == strand_name]
+        strand_subset = affected_df.loc[affected_df["Strand"] == strand_name]
         strand_total = strand_subset.shape[0]
-        strand_affected = strand_subset["Affected"].sum()
+        strand_affected = strand_subset["Affected_bool"].sum()
         strand_perc = round(
             strand_affected / strand_total * 100,
             2,
@@ -123,15 +118,9 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     # Chart
     st.markdown("## Bar Chart")
-
-    chart_df = affected_students_df.copy()
-    chart_df["Affected"] = chart_df["Affected"].replace({
-        False: "No",
-        True: "Yes",
-    })
     
     chart = (
-        alt.Chart(chart_df)
+        alt.Chart(affected_df)
         .mark_bar()
         .encode(
             x = alt.X("Strand:N"),
@@ -159,11 +148,11 @@ def report_generator_feature(finest_level, gdf, students_df):
     st.markdown("## Table of Affected Students")
 
     display_df = (
-        affected_students_df
+        affected_df
         # Only display affected students
-        .loc[affected_students_df["Affected"]]
+        .loc[affected_df["Affected_bool"]]
         # Drop bool column
-        .drop("Affected", axis = "columns")
+        .drop("Affected_bool", axis = "columns")
     )
 
     st.dataframe(display_df)
