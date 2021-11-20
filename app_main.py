@@ -45,7 +45,7 @@ if __name__ == "__main__":
         type = "password",
     )
 
-    if pw_input == "amogus":
+    if pw_input == st.secrets["password"]:
         pw_empty.empty()
     else:
         st.stop()
