@@ -100,10 +100,11 @@ def hazard_map_feature(finest_level, gdf):
                 )
                 
                 if st.button("Delete the entry at the chosen row"):
-                    st.session_state.entries.drop(
+                    st.session_state.entries = st.session_state.entries.drop(
                         delete_index,
                         axis = 0,
-                        inplace = True,
+                    ).reset_index(
+                        drop = True,
                     )
 
                 if st.button("Delete the most recently added entry"):
