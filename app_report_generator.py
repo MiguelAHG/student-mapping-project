@@ -3,11 +3,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
 
 def report_generator_feature(finest_level, gdf, students_df):
     """Generates a report about the students who live in the hazard-affected areas."""
 
-    st.markdown("## Report Generator")
+    st.markdown("# Report Generator")
 
     if ("entries" not in st.session_state) or (st.session_state.entries.shape[0] == 0):
         st.warning("There are no loaded entries yet in the hazard map layer.")
@@ -78,22 +79,22 @@ def report_generator_feature(finest_level, gdf, students_df):
             .reset_index(drop = True)
         )
 
-        affected_students_df["affected"] = False
+        affected_students_df["Affected"] = False
 
         affected_students_df.loc[
             # Mask of students affected by hazard
             students_df[finest_label].isin(gid_set),
-            "affected"
+            "Affected"
         ] = True
 
         return affected_students_df
 
     affected_students_df = find_affected_students(finest_level, gdf, students_df)
 
-    st.markdown("## Report")
+    st.markdown("## Percentages")
 
     perc_affected = round(
-        affected_students_df["affected"].sum()
+        affected_students_df["Affected"].sum()
         / affected_students_df.shape[0]
         * 100,
         2
@@ -104,29 +105,65 @@ def report_generator_feature(finest_level, gdf, students_df):
         value = f"{perc_affected}%"
     )
 
+    bullet_lst = []
     for strand_name in ["ABM", "GA", "HUMSS", "STEM"]:
 
         strand_subset = affected_students_df.loc[affected_students_df["Strand"] == strand_name]
         strand_total = strand_subset.shape[0]
-        strand_affected = strand_subset["affected"].sum()
+        strand_affected = strand_subset["Affected"].sum()
         strand_perc = round(
             strand_affected / strand_total * 100,
             2,
         )
+        bullet = f"- Percentage of {strand_name}: {strand_perc}%"
+        bullet_lst.append(bullet)
 
-        st.metric(
-            f"Percentage of {strand_name} Students Affected",
-            value = f"{strand_perc}%",
+    strand_percs = "\n".join(bullet_lst)
+    st.markdown(strand_percs)
+
+    # Chart
+    st.markdown("## Bar Chart")
+
+    chart_df = affected_students_df.copy()
+    chart_df["Affected"] = chart_df["Affected"].replace({
+        False: "No",
+        True: "Yes",
+    })
+    
+    chart = (
+        alt.Chart(chart_df)
+        .mark_bar()
+        .encode(
+            x = alt.X("Strand:N"),
+            y = alt.Y("count():Q", title = "Number of Students"),
+            color = alt.Color("Affected:N", scale = alt.Scale(scheme = "paired")),
+            tooltip = [
+                alt.Tooltip("Strand:N"),
+                alt.Tooltip("Affected:N"),
+                alt.Tooltip("count():Q", title = "Number of Students"),
+            ]
         )
+        .properties(
+            title = "Number of Affected Students by Strand",
+            height = 400,
+        )
+        .configure_axis(
+            labelFontSize = 18,
+            labelAngle = 0,
+        )
+        .interactive()
+    )
 
-    st.markdown("## Table of Students")
+    st.altair_chart(chart, use_container_width = True)
+
+    st.markdown("## Table of Affected Students")
 
     display_df = (
         affected_students_df
         # Only display affected students
-        .loc[affected_students_df["affected"]]
+        .loc[affected_students_df["Affected"]]
         # Drop bool column
-        .drop("affected", axis = "columns")
+        .drop("Affected", axis = "columns")
     )
 
     st.dataframe(display_df)
