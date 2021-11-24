@@ -10,6 +10,8 @@ gpkg = "./geo_data/gadm36_PHL.gpkg"
 
 # Use the finest layer, number 3
 gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
+# Do not include barangays whose name is n.a.
+gdf = gdf.loc[gdf["NAME_3"] != "n.a."]
 
 # Open the sample student location data.
 student_df = pd.read_csv(
