@@ -13,8 +13,15 @@ gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
 
 # Open the sample student location data.
 student_df = pd.read_csv(
-    "./private/cleaning_outputs/abm_all_locations.csv"
+    "./private/student_location_data/full_ashs_locations.csv",
 )
+
+student_df.head()
+#%%
+# Check number of non-null values per column
+student_df.info()
+
+# student_df.loc[student_df["barangay"].isnull()]
 
 #%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
@@ -25,7 +32,7 @@ student_df = (
     .reset_index(drop = True)
 )
 
-student_df.columns
+student_df.info()
 # %%
 # This cell preprocesses both of the datasets and saves them to files.
 
@@ -137,23 +144,41 @@ If c_filename is set, a comparison of the original and preprocessed data will be
 # Student data preprocessing
 s_label_lst = label_series.index.tolist()
 
+# Make this True to save files (students)
+save_student_pp = True
+
+if save_student_pp:
+    p_filename = "student_df_preprocessed"
+    c_filename = "student_df_comparison"
+else:
+    p_filename = None
+    c_filename = None
+
 student_df_pp = full_preprocess(
     student_df,
     s_label_lst,
-    # # Uncomment these to save files.
-    # p_filename = "student_df_preprocessed",
-    # c_filename = "student_df_comparison",
+    p_filename = p_filename,
+    c_filename = c_filename,
 )
 
 # GADM data preprocessing
 g_label_lst = label_series.tolist()
 
+# Make this True to save files (GADM)
+save_gadm_pp = False
+
+if save_gadm_pp:
+    p_filename = "gadm_df_preprocessed"
+    c_filename = "gadm_df_comparison"
+else:
+    p_filename = None
+    c_filename = None
+
 gadm_df_pp = full_preprocess(
     gdf,
     g_label_lst,
-    # # Uncomment these to save files.
-    # p_filename = "gadm_df_preprocessed",
-    # c_filename = "gadm_df_comparison",
+    p_filename = p_filename,
+    c_filename = c_filename,
 )
 
 # %%
@@ -187,19 +212,29 @@ for s_index, s_row in student_df_pp.iterrows():
         student_df
         .iloc[s_index]
         .loc[
-            ["full_name", "obf_email"] + s_label_lst
+            ["full_name", "obf_email", "strand", "grade_level", "section"] + s_label_lst
         ]
     )
 
     final_row = pd.concat([s_row_orig, g_row_orig], axis = 0)
     match_rows.append(final_row)
 
-match_df = pd.DataFrame(match_rows)
+match_df = (
+    pd.DataFrame(match_rows)
+    # Sort by score increasing so we can see what must be fixed
+    .sort_values("score")
+)
 
 # Save the DF of matches
 match_df.to_csv(
-    "./private/cleaning_outputs/matches.csv",
+    "./private/cleaning_outputs/full_matches.csv",
     index = False,
 )
 
 match_df.head()
+
+#%%
+# Check the match df. I made this cell read the saved file so I can run the cell without first running everything before it.
+match_df = pd.read_csv("./private/cleaning_outputs/full_matches.csv")
+
+match_df.loc[match_df.score < 3]
