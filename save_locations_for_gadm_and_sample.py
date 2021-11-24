@@ -32,11 +32,8 @@ student_df = pd.concat(
 student_df = student_df.reset_index(drop = True)
 
 # Save geodata as CSV
-(
-    gdf
-    [["NAME_0", "NAME_1", "NAME_2", "NAME_3"]]
-    .to_csv("./private/cleaning_outputs/gadm_all_locations.csv")
-)
+gdf = gdf.drop("geometry", axis = 1)
+gdf.to_csv("./private/cleaning_outputs/gadm_all_locations.csv")
 
 # Save concatenated data for ABM students
 student_df.to_csv("./private/cleaning_outputs/abm_all_locations.csv")
