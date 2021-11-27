@@ -32,9 +32,7 @@ dupes = student_df.loc[
     .duplicated(keep = False)
 ]
 
-print(dupes.shape[0])
-
-dupes
+dupes.shape[0]
 
 #%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
@@ -197,6 +195,10 @@ gadm_df_pp = full_preprocess(
 # %%
 # For each student location, find a match in GADM.
 
+from time import perf_counter
+
+t_start = perf_counter()
+
 def get_ratio(s1, s2):
     """Obtain Levenshtein ratio of two strings. Can be used in pd.Series.apply()"""
     ratio = Levenshtein.ratio(s1, s2)
@@ -237,6 +239,12 @@ match_df = (
     # Sort by score increasing so we can see what must be fixed
     .sort_values("score")
 )
+
+t_stop = perf_counter()
+
+t_elapsed = t_stop - t_start
+
+print(f"Time to match locations: {t_elapsed} s")
 
 # Save the DF of matches
 match_df.to_csv(
