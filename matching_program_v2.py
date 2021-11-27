@@ -199,18 +199,9 @@ gadm_df_pp = full_preprocess(
 # %%
 # For each student location, find a match in GADM.
 
-def lvratio(s1, s2, memo = {}):
-    """Given two strings, return the Levenshtein score. Memoized."""
+from time import perf_counter
 
-    args_tup = (s1, s2)
-
-    if args_tup in memo:
-        return memo[args_tup]
-
-    score = Levenshtein.ratio(*args_tup)
-    memo[args_tup] = score
-
-    return score
+t_start = perf_counter()
 
 def full_match(s_row, memo = {}):
     """Given the student's full location, find the GADM location that best matches. Note that s_row is only a tuple, not a Series.
@@ -233,7 +224,7 @@ def full_match(s_row, memo = {}):
             s_text = s_row[level - 1]
             g_text = g_row[g_label]
 
-            score = lvratio(s_text, g_text)
+            score = Levenshtein.ratio(s_text, g_text)
             score_per_level.append(score)
 
         # Break if perfect score is found
@@ -286,6 +277,12 @@ match_df = (
     # Sort by score increasing so we can see what must be fixed
     .sort_values("score")
 )
+
+t_stop = perf_counter()
+
+t_elapsed = t_stop - t_start
+
+print(f"Time to match locations: {t_elapsed} s")
 
 # Save the DF of matches
 match_df.to_csv(
