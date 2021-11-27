@@ -19,6 +19,7 @@ student_df = pd.read_csv(
 )
 
 student_df.head()
+
 #%%
 # Check number of non-null values per column
 student_df.info()
