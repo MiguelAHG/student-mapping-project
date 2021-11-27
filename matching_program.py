@@ -23,7 +23,17 @@ student_df.head()
 # Check number of non-null values per column
 student_df.info()
 
-# student_df.loc[student_df["barangay"].isnull()]
+#%%
+# Check for duplicate OBFs
+dupes = student_df.loc[
+    student_df["obf_email"]
+    # keep = False so all duplicates are marked True
+    .duplicated(keep = False)
+]
+
+print(dupes.shape[0])
+
+dupes
 
 #%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
