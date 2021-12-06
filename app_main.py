@@ -6,6 +6,7 @@ Main script for the Student Mapping Project app.
 import pandas as pd
 import geopandas as gpd
 import streamlit as st
+import bcrypt as bc
 
 # Custom imports for app features
 from app_home import home_feature
@@ -39,19 +40,42 @@ if __name__ == "__main__":
     st.title(f"ASHS Student-Hazard App {emoji}")
 
     # Password system. It disappears after the correct password is inputted.
-    pw_empty = st.empty()
-    
-    pw_input = pw_empty.text_input(
-        "Password",
-        type = "password",
-    )
+    if "pw_passed" not in st.session_state:
+        st.session_state["pw_passed"] = False
 
-    if pw_input == st.secrets["password"]:
-        pw_empty.empty()
-    else:
-        if pw_input != "":
-            st.warning("Incorrect password.")
-        st.stop()
+    if not st.session_state["pw_passed"]:
+
+        pw_empty = st.empty()
+        
+        pw_input = pw_empty.text_input(
+            "Password",
+            type = "password",
+        )
+
+        # Encode both inputted and hashed password as bytes objects.
+        pw_input_bytes = pw_input.encode("utf8")
+
+        pw_hashed_bytes = st.secrets["password"].encode("utf8")
+
+        # Use bcrypt to check whether input matches real password.
+        check = bc.checkpw(
+            password = pw_input_bytes,
+            hashed_password = pw_hashed_bytes,
+        )
+
+        st.session_state["pw_passed"] = check
+
+        # Check password again.
+        if check:
+            # If password is correct, immediately remove the password input from the screen.
+            pw_empty.empty()
+
+        else:
+            if pw_input != "":
+                st.warning("Incorrect password.")
+            
+            # If password is incorrect, do not continue the script.
+            st.stop()
 
     # Obtain data.
     gdf, students_df = get_data()
