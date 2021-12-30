@@ -111,6 +111,7 @@ if __name__ == "__main__":
     finest_level = 3
 
     with st.sidebar:
+        # Radio buttons to select feature
         feature = st.radio(
             "App Feature",
             options = [
@@ -120,6 +121,10 @@ if __name__ == "__main__":
                 "Report Generator",
             ]
         )
+
+        # Button to clear cache and rerun
+        if st.button("Clear cache and refresh"):
+            st.legacy_caching.clear_cache()
 
     if feature == "Home Page":
         home_feature()
