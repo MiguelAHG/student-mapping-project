@@ -58,20 +58,20 @@ def report_generator_feature(finest_level, gdf, students_df):
                 :, 
                 # Columns to take
                 [
-                    "Student Name",
-                    "OBF Email Address",
+                    "Student_Name",
+                    "OBF_Email_Address",
                     "Strand",
-                    "Grade Level",
+                    "Grade_Level",
                     "Section",
-                    "Class Number",
+                    "Class_Number",
                 ]
             ]
             # Sort rows
             .sort_values(by = [
                 "Strand",
-                "Grade Level",
+                "Grade_Level",
                 "Section",
-                "Class Number",
+                "Class_Number",
             ])
             .reset_index(drop = True)
         )
