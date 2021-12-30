@@ -122,10 +122,6 @@ if __name__ == "__main__":
             ]
         )
 
-        # Button to clear cache and rerun
-        if st.button("Clear cache and refresh"):
-            st.legacy_caching.clear_cache()
-
     if feature == "Home Page":
         home_feature()
     
