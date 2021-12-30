@@ -7,6 +7,7 @@ import pandas as pd
 import geopandas as gpd
 import streamlit as st
 import bcrypt as bc
+import copy
 
 # Custom imports for app features
 from app_home import home_feature
@@ -14,18 +15,9 @@ from app_hazard_map_layer_creator import hazard_map_feature
 from app_location_selector import location_selector_feature
 from app_report_generator import report_generator_feature
 
-@st.cache(suppress_st_warning = True, allow_output_mutation = True)
-def get_data():
-    """Obtain needed data."""
-    # GADM data
-    gpkg = "./geo_data/gadm36_PHL.gpkg"
-    gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
-
-    # Student location data
-    # Currently a local file, for testing only.
-    students_df = pd.read_csv("./private/app_testing/students.csv")
-
-    return gdf, students_df
+# For connecting to private Google Sheets file
+from google.oauth2 import service_account
+from gsheetsdb import connect
 
 if __name__ == "__main__":
 
@@ -77,8 +69,38 @@ if __name__ == "__main__":
             # If password is incorrect, do not continue the script.
             st.stop()
 
+    # Create a connection object.
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+        ],
+    )
+    conn = connect(credentials = credentials)
+    sheet_url = st.secrets["private_gsheets_url"]
+
+    @st.cache(suppress_st_warning = True, allow_output_mutation = True)
+    def get_data():
+        """Obtain needed data."""
+        # GADM data
+        gpkg = "./geo_data/gadm36_PHL.gpkg"
+        gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
+
+        # Query the Google Sheets file.
+        query = f'SELECT * FROM "{sheet_url}"'
+
+        rows = conn.execute(
+            query,
+            headers = 1,
+        )
+
+        # Student location data
+        students_df = pd.DataFrame(rows)
+
+        return gdf, students_df
+
     # Obtain data.
-    gdf, students_df = get_data()
+    gdf, students_df = copy.deepcopy(get_data())
 
     # Set this to 3 for barangay and 2 for city.
     finest_level = 3
