@@ -33,7 +33,29 @@ dupes = student_df.loc[
 ]
 
 dupes.shape[0]
+#%%
+# Check for students with incomplete location data
+loc_cols = ["barangay", "city_municipality", "province"]
 
+inc_students = student_df.loc[student_df[loc_cols].isnull().any(axis = 1)]
+
+inc_df = inc_students[["obf_email"]].copy()
+
+
+
+for col in loc_cols:
+    inc_df[col] = student_df[col].isnull().apply(lambda x: col if x else np.nan)
+
+inc_df["missing_data"] = inc_df[loc_cols].apply(
+    lambda row: ", ".join(row.dropna().to_list()),
+    axis = 1,
+)
+
+inc_result_df = inc_df[["obf_email", "missing_data"]]
+
+inc_result_df.to_csv("./private/cleaning_outputs/students_with_missing_data.csv", index = False)
+
+inc_result_df
 #%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
 
