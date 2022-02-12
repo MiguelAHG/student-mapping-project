@@ -37,6 +37,7 @@ def report_generator_feature(finest_level, gdf, students_df):
             .to_list()
         )
 
+        # Iterate through all coarse levels.
         # Iterate from 1 to the level BEFORE the finest level.
         for level_num in range(1, finest_level):
             subset = hazmap.loc[hazmap.level == level_num].copy()
@@ -58,12 +59,10 @@ def report_generator_feature(finest_level, gdf, students_df):
                 :, 
                 # Columns to take
                 [
-                    "Student_Name",
-                    "OBF_Email_Address",
                     "Strand",
                     "Grade_Level",
                     "Section",
-                    "Class_Number",
+                    "Student_Number",
                 ]
             ]
             # Sort rows
@@ -71,7 +70,6 @@ def report_generator_feature(finest_level, gdf, students_df):
                 "Strand",
                 "Grade_Level",
                 "Section",
-                "Class_Number",
             ])
             .reset_index(drop = True)
         )
@@ -151,8 +149,9 @@ def report_generator_feature(finest_level, gdf, students_df):
         affected_df
         # Only display affected students
         .loc[affected_df["Affected_bool"]]
-        # Drop bool column
-        .drop("Affected_bool", axis = "columns")
+        .reset_index(drop = True)
+        # Drop columns about being affected
+        .drop(["Affected_bool", "Affected"], axis = "columns")
     )
 
     st.dataframe(display_df)
@@ -161,7 +160,7 @@ def report_generator_feature(finest_level, gdf, students_df):
     st.markdown("## Save Table")
 
     filename = st.text_input(
-        "Filename",
+        "Filename (without extension)",
         value = "affected_students",
     )
 

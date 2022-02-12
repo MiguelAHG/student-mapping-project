@@ -8,16 +8,15 @@ def location_selector_template(finest_level, gdf, inner_func = None, key = "loca
     """Template function for location selector. Returns the GID and the list of the parts of the location name.
 inner_func: provide a function and it will be run at the bottom of each selectbox."""
 
+    # List of columns to take from GDF.
+    # Should include only GID and NAME columns down to the finest level.
     gdf_cols = [
-        "GID_1",
-        "NAME_1",
-        "GID_2",
-        "NAME_2",
-        "GID_3",
-        "NAME_3",
+        s.format(level)
+        for level in range(1, finest_level + 1)
+        for s in ["GID_{}", "NAME_{}"]
     ]
 
-    gdf_subset = gdf.loc[:, gdf_cols].copy()
+    gdf_subset = gdf[gdf_cols].copy()
 
     categories = pd.Series(
         {

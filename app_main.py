@@ -21,6 +21,9 @@ from gsheetsdb import connect
 
 if __name__ == "__main__":
 
+    # Set this to 3 for barangay and 2 for city.
+    finest_level = 2
+
     emoji = ":earth_asia:"
 
     st.set_page_config(
@@ -84,7 +87,7 @@ if __name__ == "__main__":
         """Obtain needed data."""
         # GADM data
         gpkg = "./geo_data/gadm36_PHL.gpkg"
-        gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
+        gdf = gpd.read_file(gpkg, layer = f"gadm36_PHL_{finest_level}")
 
         # Query the Google Sheets file.
         query = f'SELECT * FROM "{sheet_url}"'
@@ -98,7 +101,11 @@ if __name__ == "__main__":
         students_df = pd.DataFrame(rows)
 
         # Convert certain columns to integer dtype
-        intcols = ["Grade_Level", "Class_Number"]
+        intcols = [
+            # uncomment below when student number data is complete.
+            # "Student_Number",
+            "Grade_Level",
+        ]
         for col in intcols:
             students_df[col] = students_df[col].astype("int64")
 
@@ -106,9 +113,6 @@ if __name__ == "__main__":
 
     # Obtain data.
     gdf, students_df = copy.deepcopy(get_data())
-
-    # Set this to 3 for barangay and 2 for city.
-    finest_level = 3
 
     with st.sidebar:
         # Radio buttons to select feature

@@ -5,13 +5,18 @@ import numpy as np
 import Levenshtein
 import geopandas as gpd
 
-#%% Get data
+#%%
+# Get data
+# Choose whether to go down to barangay level (3) or only city level (2).
+finest_level = 2
+
 gpkg = "./geo_data/gadm36_PHL.gpkg"
 
-# Use the finest layer, number 3
-gdf = gpd.read_file(gpkg, layer = "gadm36_PHL_3")
-# Do not include barangays whose name is n.a.
-gdf = gdf.loc[gdf["NAME_3"] != "n.a."]
+gdf = gpd.read_file(gpkg, layer = f"gadm36_PHL_{finest_level}")
+
+if finest_level == 3:
+    # Do not include barangays whose name is n.a.
+    gdf = gdf.loc[gdf["NAME_3"] != "n.a."]
 
 # Open the sample student location data.
 student_df = pd.read_csv(
@@ -27,7 +32,7 @@ student_df.info()
 #%%
 # Check for duplicate OBFs
 dupes = student_df.loc[
-    student_df["obf_email"]
+    student_df["student_number"]
     # keep = False so all duplicates are marked True
     .duplicated(keep = False)
 ]
@@ -35,13 +40,19 @@ dupes = student_df.loc[
 dupes.shape[0]
 #%%
 # Check for students with incomplete location data
-loc_cols = ["barangay", "city_municipality", "province"]
+loc_cols = pd.Series(
+    {
+        1: "province",
+        2: "city_municipality",
+        3: "barangay",
+    }
+)
+
+loc_cols = loc_cols.loc[:finest_level]
 
 inc_students = student_df.loc[student_df[loc_cols].isnull().any(axis = 1)]
 
-inc_df = inc_students[["obf_email"]].copy()
-
-
+inc_df = inc_students[["student_number"]].copy()
 
 for col in loc_cols:
     inc_df[col] = student_df[col].isnull().apply(lambda x: col if x else np.nan)
@@ -51,7 +62,7 @@ inc_df["missing_data"] = inc_df[loc_cols].apply(
     axis = 1,
 )
 
-inc_result_df = inc_df[["obf_email", "missing_data"]]
+inc_result_df = inc_df[["student_number", "missing_data"]]
 
 inc_result_df.to_csv("./private/cleaning_outputs/students_with_missing_data.csv", index = False)
 
@@ -59,13 +70,21 @@ inc_result_df
 #%%
 # Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
 
-student_df = (
-    student_df
-    .dropna(subset = ["barangay", "city_municipality", "province"])
-    .reset_index(drop = True)
-)
+# student_df = (
+#     student_df
+#     .dropna(subset = ["barangay", "city_municipality", "province"])
+#     .reset_index(drop = True)
+# )
 
-student_df.info()
+# student_df.info()
+
+#%%
+# new code: Raise error if there's missing location data. This is helpful if the matching program is run from the command line instead of interactively.
+
+data_is_missing = inc_students.shape[0] > 0
+
+if data_is_missing:
+    raise ValueError("Some location data is missing. Check students_with)missing_data.csv")
 # %%
 # This cell preprocesses both of the datasets and saves them to files.
 
@@ -123,15 +142,11 @@ label_series = pd.Series(
     }
 )
 
-# Choose whether to go down to barangay level (3) or only city level (2).
-lowest_level = 3
+label_series = label_series.iloc[:finest_level]
+gid_label = f"GID_{finest_level}"
 
-label_series = label_series.iloc[:lowest_level]
-gid_label = f"GID_{lowest_level}"
-
-def full_preprocess(df, label_lst, p_filename = None, c_filename = None):
+def full_preprocess(df, label_lst, comparison_filename = None):
     """Fully preprocess a dataset, either student data or GADM.
-If p_filename is set, the preprocessed data is saved.
 If c_filename is set, a comparison of the original and preprocessed data will be saved to a file."""
 
     # Initial preprocessing
@@ -149,11 +164,7 @@ If c_filename is set, a comparison of the original and preprocessed data will be
             .str.strip()
         )
 
-    if p_filename is not None:
-        # Save preprocessed data only.
-        df_preprocessed.to_csv(f"./private/cleaning_outputs/{p_filename}.csv")
-
-    if c_filename is not None:
+    if comparison_filename is not None:
         # Save a table that compares the original location data to the preprocessed version.
 
         # Append _preprocessed to labels
@@ -169,7 +180,7 @@ If c_filename is set, a comparison of the original and preprocessed data will be
             axis = 1,
         )
 
-        df_comparison.to_csv(f"./private/cleaning_outputs/{c_filename}.csv")
+        df_comparison.to_csv(f"./private/cleaning_outputs/{comparison_filename}.csv")
 
     # Only return the preprocessed data.
     return df_preprocessed
@@ -177,42 +188,22 @@ If c_filename is set, a comparison of the original and preprocessed data will be
 # Student data preprocessing
 s_label_lst = label_series.index.tolist()
 
-# Make this True to save files (students)
-save_student_pp = True
-
-if save_student_pp:
-    p_filename = "student_df_preprocessed"
-    c_filename = "student_df_comparison"
-else:
-    p_filename = None
-    c_filename = None
-
 student_df_pp = full_preprocess(
     student_df,
     s_label_lst,
-    p_filename = p_filename,
-    c_filename = c_filename,
+    comparison_filename = "student_df_comparison",
 )
 
 # GADM data preprocessing
 g_label_lst = label_series.tolist()
 
-# Make this True to save files (GADM)
-save_gadm_pp = False
-
-if save_gadm_pp:
-    p_filename = "gadm_df_preprocessed"
-    c_filename = "gadm_df_comparison"
-else:
-    p_filename = None
-    c_filename = None
-
 gadm_df_pp = full_preprocess(
     gdf,
     g_label_lst,
-    p_filename = p_filename,
-    c_filename = c_filename,
+    comparison_filename = None,# "gadm_df_comparison",
 )
+
+print("Done preprocessing.")
 
 # %%
 # For each student location, find a match in GADM.
@@ -249,7 +240,7 @@ for s_index, s_row in student_df_pp.iterrows():
         student_df
         .iloc[s_index]
         .loc[
-            ["full_name", "obf_email", "strand", "grade_level", "section"] + s_label_lst
+            ["strand", "grade_level", "section"] + s_label_lst
         ]
     )
 
@@ -266,6 +257,7 @@ t_stop = perf_counter()
 
 t_elapsed = t_stop - t_start
 
+print("Done matching.")
 print(f"Time to match locations: {t_elapsed} s")
 
 # Save the DF of matches
@@ -277,7 +269,7 @@ match_df.to_csv(
 match_df.head()
 
 #%%
-# Check the match df. I made this cell read the saved file so I can run the cell without first running everything before it.
+# Check the match df. I made this cell read the saved file so I can choose to run the cell without first running everything before it.
 match_df = pd.read_csv("./private/cleaning_outputs/full_matches.csv")
 
-match_df.loc[match_df.score < 3]
+match_df.loc[match_df.score < finest_level]
