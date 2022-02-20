@@ -88,19 +88,38 @@ if data_is_missing:
 # %%
 # This cell preprocesses both of the datasets and saves them to files.
 
-# Dictionary mapping student location data labels to their GADM equivalents
+# Dictionary converting student data labels to their GADM equivalents
+label_series = pd.Series(
+    {
+        "province": "NAME_1",
+        "city_municipality": "NAME_2",
+        "barangay": "NAME_3",
+    }
+)
 
-def preprocess_series(series):
+label_series = label_series.iloc[:finest_level]
+gid_label = f"GID_{finest_level}"
+
+# Student data preprocessing
+s_label_lst = label_series.index.tolist()
+
+# GADM data preprocessing
+g_label_lst = label_series.tolist()
+
+def preprocess_series(series, all_loc_cols):
     """Perform standard text preprocessing on a Series."""
-    result = (
-        series
-        .str.strip()
-        .str.replace(r"[\.\,\'\-]", "", regex = True)
-        .str.lower()
-        .str.replace("ñ", "n", regex = False)
-    )
+    if series.name in all_loc_cols:
+        result = (
+            series
+            .str.strip()
+            .str.replace(r"[\.\,\'\-]", "", regex = True)
+            .str.lower()
+            .str.replace("ñ", "n", regex = False)
+        )
 
-    return result
+        return result
+    else:
+        return series
 
 # Dictionary of custom preprocessing steps per column
 # Note to self: after custom preprocessing, use .strip()
@@ -133,36 +152,29 @@ preprocess_dct = {
     )
 }
 
-# Dictionary converting student data labels to their GADM equivalents
-label_series = pd.Series(
-    {
-        "province": "NAME_1",
-        "city_municipality": "NAME_2",
-        "barangay": "NAME_3",
-    }
-)
-
-label_series = label_series.iloc[:finest_level]
-gid_label = f"GID_{finest_level}"
-
 def full_preprocess(df, label_lst, comparison_filename = None):
     """Fully preprocess a dataset, either student data or GADM.
-If c_filename is set, a comparison of the original and preprocessed data will be saved to a file."""
+If comparison_filename is set, a comparison of the original and preprocessed data will be saved to a file."""
 
     # Initial preprocessing
     df_preprocessed = (
         df[label_lst]
-        .apply(preprocess_series, axis = 0)
+        .apply(
+            preprocess_series,
+            all_loc_cols = s_label_lst + g_label_lst,
+            axis = 0,
+        )
     )
 
     # For each column, perform unique preprocessing steps.
-    for col in df_preprocessed:
-        specific_func = preprocess_dct[col]
+    for col in df_preprocessed.columns:
+        if col in preprocess_dct:
+            specific_func = preprocess_dct[col]
 
-        df_preprocessed[col] = (
-            specific_func(df_preprocessed[col])
-            .str.strip()
-        )
+            df_preprocessed[col] = (
+                specific_func(df_preprocessed[col])
+                .str.strip()
+            )
 
     if comparison_filename is not None:
         # Save a table that compares the original location data to the preprocessed version.
@@ -185,17 +197,11 @@ If c_filename is set, a comparison of the original and preprocessed data will be
     # Only return the preprocessed data.
     return df_preprocessed
 
-# Student data preprocessing
-s_label_lst = label_series.index.tolist()
-
 student_df_pp = full_preprocess(
     student_df,
-    s_label_lst,
+    ["student_number"] + s_label_lst,
     comparison_filename = "student_df_comparison",
 )
-
-# GADM data preprocessing
-g_label_lst = label_series.tolist()
 
 gadm_df_pp = full_preprocess(
     gdf,
@@ -217,16 +223,25 @@ def get_ratio(s1, s2):
     ratio = Levenshtein.ratio(s1, s2)
     return ratio
 
+# Set student number as index.
+s_id_df = student_df.set_index(
+    "student_number",
+    # Keep the column even after making it the index
+    drop = False,
+)
+
 match_rows = []
 for s_index, s_row in student_df_pp.iterrows():
+    s_id = s_row["student_number"]
     score_dct = {}
 
     for s_label in s_row.index:
-        s_text = s_row[s_label]
+        if s_label in s_label_lst:
+            s_text = s_row[s_label]
 
-        g_label = label_series[s_label]
-        g_col = gadm_df_pp[g_label]
-        score_dct[g_label] = g_col.apply(get_ratio, s2 = s_text)
+            g_label = label_series[s_label]
+            g_col = gadm_df_pp[g_label]
+            score_dct[g_label] = g_col.apply(get_ratio, s2 = s_text)
 
     score_df = pd.DataFrame(score_dct)
 
@@ -237,9 +252,9 @@ for s_index, s_row in student_df_pp.iterrows():
     g_row_orig = gdf.iloc[g_index].loc[g_label_lst + [gid_label]]
     g_row_orig["score"] = highest_score
     s_row_orig = (
-        student_df
-        .iloc[s_index]
+        s_id_df
         .loc[
+            s_id,
             ["student_number", "strand", "grade_level", "section"] + s_label_lst
         ]
     )
@@ -251,6 +266,7 @@ match_df = (
     pd.DataFrame(match_rows)
     # Sort by score increasing so we can see what must be fixed
     .sort_values("score")
+    .reset_index(drop = True)
 )
 
 t_stop = perf_counter()
