@@ -53,24 +53,21 @@ def report_generator_feature(finest_level, gdf, students_df):
                 ]
                 gid_set.update(fine_gid_series)
 
+        student_info_cols = [
+            "strand",
+            "grade_level",
+            "section",
+            "student_number",
+        ]
+
         affected_df = (
             students_df
             .loc[
                 :, 
-                # Columns to take
-                [
-                    "Strand",
-                    "Grade_Level",
-                    "Section",
-                    "Student_Number",
-                ]
+                student_info_cols
             ]
             # Sort rows
-            .sort_values(by = [
-                "Strand",
-                "Grade_Level",
-                "Section",
-            ])
+            .sort_values(by = student_info_cols)
             .reset_index(drop = True)
         )
 
@@ -101,7 +98,7 @@ def report_generator_feature(finest_level, gdf, students_df):
     bullet_lst = []
     for strand_name in ["ABM", "GA", "HUMSS", "STEM"]:
 
-        strand_subset = affected_df.loc[affected_df["Strand"] == strand_name]
+        strand_subset = affected_df.loc[affected_df["strand"] == strand_name]
         strand_total = strand_subset.shape[0]
         strand_affected = strand_subset["Affected_bool"].sum()
         strand_perc = round(
@@ -121,17 +118,17 @@ def report_generator_feature(finest_level, gdf, students_df):
         alt.Chart(affected_df)
         .mark_bar()
         .encode(
-            x = alt.X("Strand:N"),
+            x = alt.X("strand:N"),
             y = alt.Y("count():Q", title = "Number of Students"),
             color = alt.Color("Affected:N", scale = alt.Scale(scheme = "paired")),
             tooltip = [
-                alt.Tooltip("Strand:N"),
+                alt.Tooltip("strand:N"),
                 alt.Tooltip("Affected:N"),
                 alt.Tooltip("count():Q", title = "Number of Students"),
             ]
         )
         .properties(
-            title = "Number of Affected Students by Strand",
+            title = "Number of Affected Students by strand",
             height = 400,
         )
         .configure_axis(
