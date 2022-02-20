@@ -16,18 +16,11 @@ def report_generator_feature(finest_level, gdf, students_df):
         st.stop()
 
     @st.cache(suppress_st_warning = True)
-    def find_affected_students(finest_level, gdf, students_df):
+    def find_affected_students(finest_level, gdf, students_df, hazmap):
         """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
     
         # Label of finest level.
         finest_label = f"GID_{finest_level}"
-
-        # Hazard map layer. Drop duplicates.
-        hazmap = (
-            st.session_state.entries
-            .copy()
-            .drop_duplicates(subset = "gid")
-        )
 
         # Set of fine-grained GIDs.
         gid_set = set(
@@ -73,19 +66,26 @@ def report_generator_feature(finest_level, gdf, students_df):
         )
 
         # Mask of students affected by hazard
-        affected_df["Affected_bool"] = students_df[finest_label].isin(gid_set)
+        affected_df["affected_bool"] = students_df[finest_label].isin(gid_set)
 
         # Column of Yes or No strings
-        affected_df["Affected"] = affected_df["Affected_bool"].replace({True: "Yes", False: "No"})
+        affected_df["affected"] = affected_df["affected_bool"].replace({True: "Yes", False: "No"})
 
         return affected_df
 
-    affected_df = find_affected_students(finest_level, gdf, students_df)
+    # Hazard map layer. Drop duplicates.
+    hazmap = (
+        st.session_state.entries
+        .copy()
+        .drop_duplicates(subset = "gid")
+    )
+
+    affected_df = find_affected_students(finest_level, gdf, students_df, hazmap)
 
     st.markdown("## Percentages")
 
     perc_affected = round(
-        affected_df["Affected_bool"].sum()
+        affected_df["affected_bool"].sum()
         / affected_df.shape[0]
         * 100,
         2
@@ -101,7 +101,7 @@ def report_generator_feature(finest_level, gdf, students_df):
 
         strand_subset = affected_df.loc[affected_df["strand"] == strand_name]
         strand_total = strand_subset.shape[0]
-        strand_affected = strand_subset["Affected_bool"].sum()
+        strand_affected = strand_subset["affected_bool"].sum()
         strand_perc = round(
             strand_affected / strand_total * 100,
             2,
@@ -117,10 +117,10 @@ def report_generator_feature(finest_level, gdf, students_df):
     display_df = (
         affected_df
         # Only display affected students
-        .loc[affected_df["Affected_bool"]]
+        .loc[affected_df["affected_bool"]]
         .reset_index(drop = True)
         # Drop columns about being affected
-        .drop(["Affected_bool", "Affected"], axis = "columns")
+        .drop(["affected_bool", "affected"], axis = "columns")
     )
 
     st.dataframe(display_df)
@@ -130,7 +130,7 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     filename = st.text_input(
         "Filename (without extension)",
-        value = "affected_students",
+        value = "hazard_mapping_results",
     )
 
     @st.cache(suppress_st_warning = True)
@@ -139,10 +139,12 @@ def report_generator_feature(finest_level, gdf, students_df):
         result = df.to_csv(index = False).encode("utf-8")
         return result
 
-    csv = convert_df_for_download(display_df)
+    complete_table = affected_df[["strand", "grade_level", "section", "student_number", "affected"]]
+
+    csv = convert_df_for_download(complete_table)
 
     st.download_button(
-        "Download table of affected students as CSV",
+        "Download complete table as CSV",
         data = csv,
         file_name = f"{filename}.csv",
         mime = "text/csv",
