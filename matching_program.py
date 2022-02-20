@@ -68,7 +68,7 @@ inc_result_df.to_csv("./private/cleaning_outputs/students_with_missing_data.csv"
 
 inc_result_df
 #%%
-# Delete rows with empty cells. This is temporary. For the real thing, we have to make sure all barangays and cities are complete in the data.
+# Delete rows with empty cells. This is for testing purposes only. For the real thing, we have to make sure all barangays and cities are complete in the data.
 
 # student_df = (
 #     student_df
@@ -79,12 +79,12 @@ inc_result_df
 # student_df.info()
 
 #%%
-# new code: Raise error if there's missing location data. This is helpful if the matching program is run from the command line instead of interactively.
+# Raise an error if there's missing location data. This is helpful if the matching program is run from the command line instead of interactively.
 
 data_is_missing = inc_students.shape[0] > 0
 
 if data_is_missing:
-    raise ValueError("Some location data is missing. Check students_with)missing_data.csv")
+    raise ValueError("Some location data is missing. Check students_with_missing_data.csv")
 # %%
 # This cell preprocesses both of the datasets and saves them to files.
 
@@ -240,7 +240,7 @@ for s_index, s_row in student_df_pp.iterrows():
         student_df
         .iloc[s_index]
         .loc[
-            ["strand", "grade_level", "section"] + s_label_lst
+            ["student_number", "strand", "grade_level", "section"] + s_label_lst
         ]
     )
 
