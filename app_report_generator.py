@@ -139,9 +139,9 @@ def report_generator_feature(finest_level, gdf, students_df):
         result = df.to_csv(index = False).encode("utf-8")
         return result
 
-    complete_table = affected_df[["strand", "grade_level", "section", "student_number", "affected"]]
+    save_df = affected_df[["strand", "grade_level", "section", "student_number", "affected"]].copy()
 
-    csv = convert_df_for_download(complete_table)
+    csv = convert_df_for_download(save_df)
 
     st.download_button(
         "Download complete table as CSV",
