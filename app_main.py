@@ -100,15 +100,6 @@ if __name__ == "__main__":
         # Student location data
         students_df = pd.DataFrame(rows)
 
-        # Convert certain columns to integer dtype
-        intcols = [
-            # uncomment below when student number data is complete.
-            # "Student_Number",
-            "Grade_Level",
-        ]
-        for col in intcols:
-            students_df[col] = students_df[col].astype("int64")
-
         return gdf, students_df
 
     # Obtain data.
