@@ -175,10 +175,16 @@ def report_generator_feature(finest_level, gdf, students_df):
     display_df = (
         affected_df
         # Only display affected students
-        .loc[affected_df["affected_bool"]]
+        .loc[
+            affected_df["affected_bool"],
+            [
+                "strand",
+                "grade_level",
+                "section",
+                "student_number",
+            ],
+        ]
         .reset_index(drop = True)
-        # Drop columns about being affected
-        .drop(["affected_bool", "affected"], axis = "columns")
     )
 
     st.dataframe(display_df)
