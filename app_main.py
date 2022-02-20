@@ -100,6 +100,10 @@ if __name__ == "__main__":
         # Student location data
         students_df = pd.DataFrame(rows)
 
+        int_cols = ["student_number", "grade_level"]
+        for col in int_cols:
+            students_df[col] = students_df[col].astype(int)
+
         return gdf, students_df
 
     # Obtain data.
