@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+import plotly.express as px
 
 def report_generator_feature(finest_level, gdf, students_df):
     """Generates a report about the students who live in the hazard-affected areas."""
@@ -15,12 +16,12 @@ def report_generator_feature(finest_level, gdf, students_df):
         st.warning("There are no entries yet in the hazard map layer.")
         st.stop()
 
+    # Label of finest level.
+    finest_label = f"GID_{finest_level}"
+
     @st.cache(suppress_st_warning = True)
     def find_affected_students(finest_level, gdf, students_df, hazmap):
         """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
-    
-        # Label of finest level.
-        finest_label = f"GID_{finest_level}"
 
         # Set of fine-grained GIDs.
         gid_set = set(
@@ -58,7 +59,7 @@ def report_generator_feature(finest_level, gdf, students_df):
             students_df
             .loc[
                 :, 
-                student_info_cols
+                student_info_cols + [finest_label]
             ]
             # Sort rows
             .sort_values(by = student_info_cols)
@@ -71,7 +72,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         # Column of Yes or No strings
         affected_df["affected"] = affected_df["affected_bool"].replace({True: "Yes", False: "No"})
 
-        return affected_df
+        return affected_df, gid_set
 
     # Hazard map layer. Drop duplicates.
     hazmap = (
@@ -80,7 +81,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         .drop_duplicates(subset = "gid")
     )
 
-    affected_df = find_affected_students(finest_level, gdf, students_df, hazmap)
+    affected_df, gid_set = find_affected_students(finest_level, gdf, students_df, hazmap)
 
     st.markdown("## Percentages")
 
@@ -112,6 +113,63 @@ def report_generator_feature(finest_level, gdf, students_df):
     strand_percs = "\n".join(bullet_lst)
     st.markdown(strand_percs)
 
+    # Map feature
+    st.markdown("## Map of the Philippines")
+    st.markdown("Colored areas indicate areas affected by the hazard. Uncolored areas indicate areas not affected. The hue of each area indicates how many ASHS students are affected; refer to the legend. Not all affected areas have ASHS students.\n\nHover over a city to see its name and the exact number of students affected. Pan by dragging with the left mouse button. Zoom in and out with the scroll wheel. To save a photo, adjust the pan and zoom to the desired area. Then, hover over the top right of the image and click the camera button (Download plot as a png).")
+
+    affected_per_city = (
+        affected_df
+        .loc[affected_df["affected_bool"]]
+        .pivot_table(
+            index = finest_label,
+            values = "affected_bool",
+            aggfunc = np.sum,
+        )
+        .rename(columns = {"affected_bool": "number_affected"})
+    )
+
+    map_df = (
+        gdf
+        .loc[
+            gdf[finest_label].isin(gid_set),
+            ["NAME_1", "NAME_2", "geometry", finest_label]
+        ]
+        .merge(
+            right = affected_per_city,
+            how = "left",
+            on = finest_label,
+        )
+    )
+
+    map_df.number_affected = map_df.number_affected.fillna(0)
+
+    map_df = (
+        map_df.rename(columns = {
+            "NAME_2": "City or Municipality",
+            "NAME_1": "Province",
+            "number_affected": "Number of Affected ASHS Students"
+        })
+        .set_index(finest_label, drop = True)
+    )
+
+    fig = px.choropleth_mapbox(
+        map_df,
+        geojson = map_df.geometry,
+        locations = map_df.index,
+        color = "Number of Affected ASHS Students",
+        color_continuous_scale = "Viridis",
+        range_color = None,
+        mapbox_style = "carto-positron",
+        zoom = 4.2,
+        center = {"lat": 12.879721, "lon": 121.774017},
+        opacity = 0.5,
+        hover_name = "City or Municipality",
+        hover_data = ["Province", "Number of Affected ASHS Students"],
+    )
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    
+    st.plotly_chart(fig)
+
     st.markdown("## Table of Affected Students")
 
     display_df = (
@@ -127,6 +185,7 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     # Let the user save the table.
     st.markdown("## Save Table")
+    st.markdown("Note that the table shown above includes only affected students. On the other hand, the table that is downloaded will include all ASHS students. A column will indicate whether each student is affected by the hazard or not.\n\nAlso, a CSV file is a text file that can be opened in Excel as a spreadsheet. Use 'Save As' to change its file type.")
 
     filename = st.text_input(
         "Filename (without extension)",
