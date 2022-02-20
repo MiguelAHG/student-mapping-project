@@ -9,6 +9,7 @@ def report_generator_feature(finest_level, gdf, students_df):
     """Generates a report about the students who live in the hazard-affected areas."""
 
     st.markdown("# Report Generator")
+    st.markdown("Ensure that the hazard map layer is complete before saving these results.")
 
     if ("entries" not in st.session_state) or (st.session_state.entries.shape[0] == 0):
         st.warning("There are no entries yet in the hazard map layer.")
@@ -110,35 +111,6 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     strand_percs = "\n".join(bullet_lst)
     st.markdown(strand_percs)
-
-    # Chart
-    st.markdown("## Bar Chart")
-    
-    chart = (
-        alt.Chart(affected_df)
-        .mark_bar()
-        .encode(
-            x = alt.X("strand:N"),
-            y = alt.Y("count():Q", title = "Number of Students"),
-            color = alt.Color("Affected:N", scale = alt.Scale(scheme = "paired")),
-            tooltip = [
-                alt.Tooltip("strand:N"),
-                alt.Tooltip("Affected:N"),
-                alt.Tooltip("count():Q", title = "Number of Students"),
-            ]
-        )
-        .properties(
-            title = "Number of Affected Students by strand",
-            height = 400,
-        )
-        .configure_axis(
-            labelFontSize = 18,
-            labelAngle = 0,
-        )
-        .interactive()
-    )
-
-    st.altair_chart(chart, use_container_width = True)
 
     st.markdown("## Table of Affected Students")
 
