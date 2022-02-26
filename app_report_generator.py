@@ -88,35 +88,25 @@ def report_generator_feature(finest_level, gdf, students_df):
         # Column of Yes or No strings
         affected_df["affected"] = affected_df["affected_bool"].replace({True: "Yes", False: "No"})
 
-        st.markdown("## Percentages")
+        st.markdown("## Main Statistics")
 
+        num_affected = affected_df["affected_bool"].sum()
         perc_affected = round(
-            affected_df["affected_bool"].sum()
-            / affected_df.shape[0]
-            * 100,
+            num_affected / affected_df.shape[0] * 100,
             2
         )
 
-        st.metric(
-            "Percentage of ASHS Students Affected",
-            value = f"{perc_affected}%"
-        )
-
-        bullet_lst = []
-        for strand_name in ["ABM", "GA", "HUMSS", "STEM"]:
-
-            strand_subset = affected_df.loc[affected_df["strand"] == strand_name]
-            strand_total = strand_subset.shape[0]
-            strand_affected = strand_subset["affected_bool"].sum()
-            strand_perc = round(
-                strand_affected / strand_total * 100,
-                2,
+        cols = st.columns(2)
+        with cols[0]:
+            st.metric(
+                "Number of ASHS Students Affected",
+                value = f"{num_affected}",
             )
-            bullet = f"- Percentage of {strand_name}: {strand_perc}%"
-            bullet_lst.append(bullet)
-
-        strand_percs = "\n".join(bullet_lst)
-        st.markdown(strand_percs)
+        with cols[1]:
+            st.metric(
+                "Percentage of ASHS Students Affected",
+                value = f"{perc_affected}%",
+            )
 
         # Map feature
         st.markdown("## Map of the Philippines")
