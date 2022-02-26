@@ -37,11 +37,11 @@ def hazard_map_feature(finest_level, gdf):
             st.stop()
 
         if st.button("Append this layer to the current layer"):
-            list_of_dicts = up_df.to_dict(orient = "records")
+
             st.session_state.entries = pd.concat(
                 [st.session_state.entries, up_df],
                 axis = 0,
-            )
+            ).reset_index(drop = True)
 
     st.markdown("---")
 
