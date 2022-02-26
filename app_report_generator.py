@@ -3,7 +3,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
 import plotly.express as px
 
 def report_generator_feature(finest_level, gdf, students_df):
