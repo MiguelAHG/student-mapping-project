@@ -196,7 +196,7 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     # Let the user save the table.
     st.markdown("## Save Table")
-    st.markdown("Note that the table shown above includes only affected students. On the other hand, the table that is downloaded will include all ASHS students. A column will indicate whether each student is affected by the hazard or not.\n\nAlso, a CSV file is a text file that can be opened in Excel as a spreadsheet. Use 'Save As' to change its file type.")
+    st.markdown("Note that the table shown above includes only affected students. On the other hand, the table that is downloaded will include all ASHS students. A column will indicate whether each student is affected by the hazard or not.\n\nAlso, the CSV file is a text file that can be opened in Excel as a spreadsheet. Use 'Save As' to change its file type.")
 
     filename = st.text_input(
         "Filename (without extension)",
