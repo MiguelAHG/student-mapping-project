@@ -24,12 +24,12 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     name_labels = [f"NAME_{i}" for i in range(1, finest_level + 1)]
 
-    @st.cache(suppress_st_warning = True)
-    def show_report(finest_level, gdf, students_df, hazmap, name_labels):
-        """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
+    # Label of finest level.
+    finest_label = f"GID_{finest_level}"
 
-        # Label of finest level.
-        finest_label = f"GID_{finest_level}"
+    @st.cache(suppress_st_warning = True)
+    def identify_affected(finest_level, finest_label, gdf, students_df, hazmap, name_labels):
+        """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
 
         # Set of fine-grained GIDs.
         gid_set = set(
@@ -87,111 +87,116 @@ def report_generator_feature(finest_level, gdf, students_df):
         # Column of Yes or No strings
         affected_df["affected"] = affected_df["affected_bool"].replace({True: "Yes", False: "No"})
 
-        st.markdown("## Main Statistics")
+        return affected_df, gid_set
 
-        num_affected = affected_df["affected_bool"].sum()
-        perc_affected = round(
-            num_affected / affected_df.shape[0] * 100,
-            2
+    affected_df, gid_set = identify_affected(finest_level, finest_label, gdf, students_df, hazmap, name_labels)
+
+    st.markdown("## Main Statistics")
+
+    num_affected = affected_df["affected_bool"].sum()
+    perc_affected = round(
+        num_affected / affected_df.shape[0] * 100,
+        2
+    )
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.metric(
+            "Number of ASHS Students Affected",
+            value = f"{num_affected}",
+        )
+    with cols[1]:
+        st.metric(
+            "Percentage of ASHS Students Affected",
+            value = f"{perc_affected}%",
         )
 
-        cols = st.columns(2)
-        with cols[0]:
-            st.metric(
-                "Number of ASHS Students Affected",
-                value = f"{num_affected}",
-            )
-        with cols[1]:
-            st.metric(
-                "Percentage of ASHS Students Affected",
-                value = f"{perc_affected}%",
-            )
+    if num_affected == 0:
+        st.warning("No students are affected by this hazard, so a report has not been generated.")
+        st.stop()
 
-        # Map feature
-        st.markdown("## Map of the Philippines")
-        st.markdown("Colored areas indicate areas affected by the hazard. Uncolored areas indicate areas not affected. The hue of each area indicates how many ASHS students are affected; refer to the legend. Not all affected areas have ASHS students.\n\nHover over a city to see its name and the exact number of students affected. Pan by dragging with the left mouse button. Zoom in and out with the scroll wheel. To save a photo, adjust the pan and zoom to the desired area. Then, hover over the top right of the image and click the camera button (Download plot as a png).")
-
-        affected_per_city = (
-            affected_df
-            .loc[affected_df["affected_bool"]]
-            .pivot_table(
-                index = finest_label,
-                values = "affected_bool",
-                aggfunc = np.sum,
-            )
-            .rename(columns = {"affected_bool": "number_affected"})
+    # Map feature
+    st.markdown("## Map of the Philippines")
+    st.markdown("Colored areas indicate areas affected by the hazard. Uncolored areas indicate areas not affected. The hue of each area indicates how many ASHS students are affected; refer to the legend. Not all affected areas have ASHS students.\n\nHover over a city to see its name and the exact number of students affected. Pan by dragging with the left mouse button. Zoom in and out with the scroll wheel. To save a photo, adjust the pan and zoom to the desired area. Then, hover over the top right of the image and click the camera button (Download plot as a png).")
+    
+    affected_per_city = (
+        affected_df
+        .loc[affected_df["affected_bool"]]
+        .pivot_table(
+            index = finest_label,
+            values = "affected_bool",
+            aggfunc = np.sum,
         )
+        .rename(columns = {"affected_bool": "number_affected"})
+    )
 
-        map_df = (
-            gdf
-            .loc[
-                gdf[finest_label].isin(gid_set),
-                name_labels + ["geometry", finest_label]
-            ]
-            .merge(
-                right = affected_per_city,
-                how = "left",
-                on = finest_label,
-            )
+    map_df = (
+        gdf
+        .loc[
+            gdf[finest_label].isin(gid_set),
+            name_labels + ["geometry", finest_label]
+        ]
+        .merge(
+            affected_per_city,
+            how = "left",
+            left_on = finest_label,
+            right_index = True,
         )
+    )
 
-        map_df.number_affected = map_df.number_affected.fillna(0)
+    map_df["number_affected"] = map_df["number_affected"].fillna(0)
 
-        map_df = (
-            map_df.rename(
-                columns = {
-                    "NAME_3": "Barangay",
-                    "NAME_2": "City or Municipality",
-                    "NAME_1": "Province",
-                    "number_affected": "Number of Affected ASHS Students"
-                },
-                # Ignore errors so that even if a name label is not present in map_df,
-                # no error is thrown.
-                errors = "ignore",
-            )
-            .set_index(finest_label, drop = True)
+    map_df = (
+        map_df.rename(
+            columns = {
+                "NAME_3": "Barangay",
+                "NAME_2": "City or Municipality",
+                "NAME_1": "Province",
+                "number_affected": "Number of Affected ASHS Students"
+            },
+            # Ignore errors so that even if a name label is not present in map_df,
+            # no error is thrown.
+            errors = "ignore",
         )
+        .set_index(finest_label, drop = True)
+    )
 
-        fig = px.choropleth_mapbox(
-            map_df,
-            geojson = map_df.geometry,
-            locations = map_df.index,
-            color = "Number of Affected ASHS Students",
-            color_continuous_scale = "Viridis",
-            range_color = None,
-            mapbox_style = "carto-positron",
-            zoom = 4.2,
-            center = {"lat": 12.879721, "lon": 121.774017},
-            opacity = 0.5,
-            hover_name = "City or Municipality",
-            hover_data = ["Province", "Number of Affected ASHS Students"],
-        )
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        
-        st.plotly_chart(fig)
+    fig = px.choropleth_mapbox(
+        map_df,
+        geojson = map_df.geometry,
+        locations = map_df.index,
+        color = "Number of Affected ASHS Students",
+        color_continuous_scale = "Viridis",
+        range_color = None,
+        mapbox_style = "carto-positron",
+        zoom = 4.2,
+        center = {"lat": 12.879721, "lon": 121.774017},
+        opacity = 0.5,
+        hover_name = "City or Municipality",
+        hover_data = ["Province", "Number of Affected ASHS Students"],
+    )
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    
+    st.plotly_chart(fig)
 
-        st.markdown("## Table of Affected Students")
+    st.markdown("## Table of Affected Students")
 
-        display_df = (
-            affected_df
-            # Only display affected students
-            .loc[
-                affected_df["affected_bool"],
-                [
-                    "strand",
-                    "grade_level",
-                    "section",
-                    "student_number",
-                ],
-            ]
-            .reset_index(drop = True)
-        )
+    display_df = (
+        affected_df
+        # Only display affected students
+        .loc[
+            affected_df["affected_bool"],
+            [
+                "strand",
+                "grade_level",
+                "section",
+                "student_number",
+            ],
+        ]
+        .reset_index(drop = True)
+    )
 
-        st.dataframe(display_df)
-
-        return affected_df
-
-    affected_df = show_report(finest_level, gdf, students_df, hazmap, name_labels)
+    st.dataframe(display_df)
 
     # Let the user save the table.
     st.markdown("## Save Table")
