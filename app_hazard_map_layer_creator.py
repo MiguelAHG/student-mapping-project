@@ -53,7 +53,7 @@ def hazard_map_feature(finest_level, gdf):
 
         st.markdown("## Select Areas")
 
-        def add_button(level, cat, cur_name, gid, name_list):
+        def add_button(level, cat, gid, name_list):
             """Button that lets the user add the selected location to the hazard map layer. This is used in the location selector template."""
 
             if st.button(f"Add entire {cat} to selection", key = f"button {level}"):

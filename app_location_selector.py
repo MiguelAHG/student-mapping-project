@@ -53,7 +53,7 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
         name_list.append(cur_name)
 
         if inner_func is not None:
-            inner_func(level, cat, cur_name, gid, name_list)
+            inner_func(level, cat, gid, name_list)
 
     return gid, name_list
 
