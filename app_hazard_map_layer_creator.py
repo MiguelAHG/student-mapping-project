@@ -82,7 +82,6 @@ def hazard_map_feature(finest_level, gdf):
 
     with cols[1]:
 
-        # df_container = st.container()
         st.markdown("## Delete Areas")
 
         # An Empty contains one element, which may be replaced.
