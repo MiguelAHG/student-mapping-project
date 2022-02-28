@@ -207,18 +207,10 @@ def report_generator_feature(finest_level, gdf, students_df):
         value = "hazard_mapping_results",
     )
 
-    # This dictionary will be used to rename the columns in affected_df before saving
-    name_categories = {
-        "NAME_1": "province",
-        "NAME_2": "city_or_municipality",
-        "NAME_3": "barangay",
-    }
-
     save_df = (
         affected_df
-        [["strand", "grade_level", "section", "student_number", "affected"] + name_labels]
+        [["strand", "grade_level", "section", "student_number", "affected"]]
         .copy()
-        .rename(columns = name_categories, errors = "ignore")
     )
 
     @st.cache(suppress_st_warning = True)
