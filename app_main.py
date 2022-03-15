@@ -12,7 +12,6 @@ import copy
 # Custom imports for app features
 from app_home import home_feature
 from app_hazard_map_layer_creator import hazard_map_feature
-from app_location_selector import location_selector_feature
 from app_report_generator import report_generator_feature
 
 # For connecting to private Google Sheets file
@@ -115,7 +114,6 @@ if __name__ == "__main__":
             "App Feature",
             options = [
                 "Home Page",
-                "Location Selector",
                 "Hazard Map Layer Creator",
                 "Report Generator",
             ]
@@ -123,9 +121,6 @@ if __name__ == "__main__":
 
     if feature == "Home Page":
         home_feature()
-    
-    elif feature == "Location Selector":
-        location_selector_feature(finest_level, gdf)
 
     elif feature == "Hazard Map Layer Creator":
         hazard_map_feature(finest_level, gdf)
