@@ -5,8 +5,7 @@ import pandas as pd
 import numpy as np
 
 def location_selector(finest_level, gdf, key):
-    """Template function for location selector. Returns the GID and the list of the parts of the location name.
-inner_func: provide a function and it will be run at the bottom of each selectbox."""
+    """Location selector interface. Allows the user to select areas and add them to the hazard map layer."""
 
     # List of columns to take from GDF.
     # Should include only GID and NAME columns down to the finest level.
