@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from app_location_selector import location_selector_template
+from app_location_selector import location_selector
 
 def hazard_map_feature(finest_level, gdf):
 
@@ -53,7 +53,7 @@ def hazard_map_feature(finest_level, gdf):
 
         st.markdown("## Select Areas")
 
-        location_selector_template(
+        location_selector(
             finest_level,
             gdf,
             key = "location selector - hazard map layer creator",
