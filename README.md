@@ -18,4 +18,6 @@ The app was programmed by Miguel Antonio H. Germar.
 
 # License
 
-No formal license for this project has been chosen yet. Currently, you may not download, edit, or redistribute any files in this repository.
+Author: Miguel Antonio H. Germar
+
+Copyright 2022. All rights reserved. Distribution of the software in any form is only allowed with explicit, prior permission from the owner.
