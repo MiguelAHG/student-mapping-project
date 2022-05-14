@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-def location_selector(finest_level, gdf, key = "location_selector"):
+def location_selector(finest_level, gdf, key):
     """Template function for location selector. Returns the GID and the list of the parts of the location name.
 inner_func: provide a function and it will be run at the bottom of each selectbox."""
 
