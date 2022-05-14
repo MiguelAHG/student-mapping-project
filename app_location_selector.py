@@ -56,38 +56,3 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
             inner_func(level, cat, gid, name_list)
 
     return gid, name_list
-
-def location_selector_feature(finest_level, gdf):
-    """The location selector page of the web app."""
-
-    st.markdown("# Location Selector")
-
-    gid, name_list = location_selector_template(
-        finest_level,
-        gdf,
-        key = "location selector - feature",
-    )
-
-    full_location_name = ", ".join(reversed(name_list))
-
-    # Display the full location name and GID.
-    # Provide a button to copy each of these to the clipboard.
-
-    display_dict = {
-        "Name": full_location_name,
-        "GID": gid,
-    }
-
-    for dct_key in display_dict:
-        dct_value = display_dict[dct_key]
-
-        st.markdown(f"Location {dct_key}: **{dct_value}**")
-
-        clipboard_button = st.button(
-            f"Copy {dct_key} to Clipboard",
-            key = dct_key,
-        )
-
-        if clipboard_button:
-            cb_df = pd.DataFrame([dct_value])
-            cb_df.to_clipboard(index = False, header = False)
