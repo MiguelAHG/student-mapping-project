@@ -69,4 +69,4 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
 
             st.session_state.entries = st.session_state.entries.append(new_row)
 
-    return gid, name_list
+    return
