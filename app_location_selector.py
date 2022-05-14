@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-def location_selector_template(finest_level, gdf, inner_func = None, key = "location_selector"):
+def location_selector_template(finest_level, gdf, key = "location_selector"):
     """Template function for location selector. Returns the GID and the list of the parts of the location name.
 inner_func: provide a function and it will be run at the bottom of each selectbox."""
 
@@ -52,7 +52,21 @@ inner_func: provide a function and it will be run at the bottom of each selectbo
         gid_list.append(gid)
         name_list.append(cur_name)
 
-        if inner_func is not None:
-            inner_func(level, cat, gid, name_list)
+        if st.button(f"Add entire {cat} to selection", key = f"button {level}"):
+
+            full_location_name = ", ".join(reversed(name_list))
+
+            new_row = pd.Series(
+                {
+                    "level": level,
+                    "category": cat,
+                    "name": full_location_name,
+                    "gid": gid,
+                },
+                # Set the name of the Series to the next index above the highest index in the DF of entries.
+                name = st.session_state.entries.shape[0]
+            )
+
+            st.session_state.entries = st.session_state.entries.append(new_row)
 
     return gid, name_list

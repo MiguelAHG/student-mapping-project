@@ -53,31 +53,10 @@ def hazard_map_feature(finest_level, gdf):
 
         st.markdown("## Select Areas")
 
-        def add_button(level, cat, gid, name_list):
-            """Button that lets the user add the selected location to the hazard map layer. This is used in the location selector template."""
-
-            if st.button(f"Add entire {cat} to selection", key = f"button {level}"):
-
-                full_location_name = ", ".join(reversed(name_list))
-
-                new_row = pd.Series(
-                    {
-                        "level": level,
-                        "category": cat,
-                        "name": full_location_name,
-                        "gid": gid,
-                    },
-                    # Set the name of the Series to the next index above the highest index in the DF of entries.
-                    name = st.session_state.entries.shape[0]
-                )
-
-                st.session_state.entries = st.session_state.entries.append(new_row)
-
         location_selector_template(
             finest_level,
             gdf,
-            inner_func = add_button,
-            key = "location selector - hazard map layer creator"
+            key = "location selector - hazard map layer creator",
         )
 
     with cols[1]:
