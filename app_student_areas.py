@@ -21,6 +21,11 @@ def student_areas_feature(finest_level, gdf, students_df):
         }
     )
 
+    name_categories = name_categories.iloc[0:finest_level]
+
+    name_cols = name_categories.index.tolist()
+    display_cols = name_categories.to_list()
+
     # Set of GIDs of areas populated by students
     populated_gids = set(
         students_df[finest_gid_label]
@@ -28,11 +33,8 @@ def student_areas_feature(finest_level, gdf, students_df):
         .to_list()
     )
 
-    # Subset of level_names with the GADM columns to display. Includes the NAME columns from the coarsest level (province) down to the finest level.
-    display_cols = name_categories.iloc[0:finest_level]
-
     # List of columns to keep in gdf_populated. geometry column contains geospatial data.
-    keep_cols = display_cols.index.tolist() + [finest_gid_label, "geometry"]
+    keep_cols = name_cols + [finest_gid_label, "geometry"]
 
     # GADM entries of populated areas
     gdf_populated = (
