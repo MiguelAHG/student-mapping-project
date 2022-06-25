@@ -13,6 +13,7 @@ import copy
 from app_home import home_feature
 from app_hazard_map_layer_creator import hazard_map_feature
 from app_report_generator import report_generator_feature
+from app_student_areas import student_areas_feature
 
 # For connecting to private Google Sheets file
 from google.oauth2 import service_account
@@ -114,6 +115,7 @@ if __name__ == "__main__":
             "App Feature",
             options = [
                 "Home Page",
+                "Student-populated Areas",
                 "Hazard Map Layer Creator",
                 "Report Generator",
             ]
@@ -121,6 +123,9 @@ if __name__ == "__main__":
 
     if feature == "Home Page":
         home_feature()
+
+    elif feature == "Student-populated Areas":
+        student_areas_feature(finest_level, gdf, students_df)
 
     elif feature == "Hazard Map Layer Creator":
         hazard_map_feature(finest_level, gdf)
