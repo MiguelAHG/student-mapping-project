@@ -22,7 +22,7 @@ from gsheetsdb import connect
 if __name__ == "__main__":
 
     # Set this to 3 for barangay and 2 for city.
-    finest_level = 2
+    finest_level = st.secrets["finest_level"]
 
     emoji = ":earth_asia:"
 
