@@ -27,6 +27,8 @@ def report_generator_feature(finest_level, gdf, students_df):
     # Label of finest level.
     finest_label = f"GID_{finest_level}"
 
+    finest_name_label = f"NAME_{finest_level}"
+
     @st.cache(suppress_st_warning = True)
     def identify_affected(finest_level, finest_label, gdf, students_df, hazmap, name_labels):
         """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
@@ -146,20 +148,35 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     map_df["number_affected"] = map_df["number_affected"].fillna(0)
 
+    # Series of name labels and their corresponding categories
+    name_categories = pd.Series(
+        {
+            "NAME_1": "Province",
+            "NAME_2": "City or Municipality",
+            "NAME_3": "Barangay",
+        }
+    )
+
+    name_categories = name_categories.iloc[0:finest_level]
+
+    # Series used to rename columns in the dataframe
+    renaming_series = name_categories.copy()
+    renaming_series["number_affected"] = "Number of Affected ASHS Students"
+
+    # Rename columns
     map_df = (
-        map_df.rename(
-            columns = {
-                "NAME_3": "Barangay",
-                "NAME_2": "City or Municipality",
-                "NAME_1": "Province",
-                "number_affected": "Number of Affected ASHS Students"
-            },
-            # Ignore errors so that even if a name label is not present in map_df,
-            # no error is thrown.
-            errors = "ignore",
-        )
+        map_df.rename(columns = renaming_series)
         .set_index(finest_label, drop = True)
     )
+
+    # Specify the variable containing the name of each area on the map. This is the variable associated with the finest level.
+    hover_name = name_categories.loc[finest_name_label]
+
+    # Specify the list of variables to be shown in the hover tooltip. This includes the variables from the coarsest level down to one level above the finest level.
+    coarse_categories = name_categories.iloc[0:(finest_level - 1)].to_list()
+    hover_data = coarse_categories + ["Number of Affected ASHS Students"]
+
+    # Make map
 
     fig = px.choropleth_mapbox(
         map_df,
@@ -172,8 +189,8 @@ def report_generator_feature(finest_level, gdf, students_df):
         zoom = 4.2,
         center = {"lat": 12.879721, "lon": 121.774017},
         opacity = 0.5,
-        hover_name = "City or Municipality",
-        hover_data = ["Province", "Number of Affected ASHS Students"],
+        hover_name = hover_name,
+        hover_data = hover_data,
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     
