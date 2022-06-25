@@ -13,7 +13,7 @@ def student_areas_feature(finest_level, gdf, students_df):
 
     finest_name_label = f"NAME_{finest_level}"
 
-    level_names = pd.Series(
+    name_categories = pd.Series(
         {
             "NAME_1": "Province",
             "NAME_2": "City or Municipality",
@@ -29,7 +29,7 @@ def student_areas_feature(finest_level, gdf, students_df):
     )
 
     # Subset of level_names with the GADM columns to display. Includes the NAME columns from the coarsest level (province) down to the finest level.
-    display_cols = level_names.iloc[0:finest_level]
+    display_cols = name_categories.iloc[0:finest_level]
 
     # List of columns to keep in gdf_populated. geometry column contains geospatial data.
     keep_cols = display_cols.index.tolist() + [finest_gid_label, "geometry"]
@@ -41,7 +41,7 @@ def student_areas_feature(finest_level, gdf, students_df):
             gdf[finest_gid_label].isin(populated_gids),
             keep_cols
         ]
-        .rename(columns = level_names)
+        .rename(columns = name_categories)
         .set_index(finest_gid_label)
     )
 
@@ -74,10 +74,10 @@ def student_areas_feature(finest_level, gdf, students_df):
     st.markdown("## Map")
 
     # Specify the variable containing the name of each area on the map. This is the variable associated with the finest level.
-    hover_name = level_names.loc[finest_name_label]
+    hover_name = name_categories.loc[finest_name_label]
 
     # Specify the list of variables to be shown in the hover tooltip. This includes the variables from the coarsest level down to one level above the finest level.
-    hover_data = level_names.iloc[0:(finest_level - 1)]
+    hover_data = name_categories.iloc[0:(finest_level - 1)]
 
     fig = px.choropleth_mapbox(
         gdf_populated,
