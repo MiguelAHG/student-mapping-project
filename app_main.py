@@ -32,7 +32,7 @@ if __name__ == "__main__":
         initial_sidebar_state = "expanded",
     )
 
-    st.title(f"ASHS Student-Hazard App {emoji}")
+    st.markdown(f"ASHS Student-Hazard App {emoji}")
 
     # Password system. It disappears after the correct password is inputted.
     if "pw_passed" not in st.session_state:
