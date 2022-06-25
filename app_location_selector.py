@@ -17,7 +17,7 @@ def location_selector(finest_level, gdf, key):
 
     gdf_subset = gdf[gdf_cols].copy()
 
-    categories = pd.Series(
+    level_categories = pd.Series(
         {
             1: "province",
             2: "city or municipality",
@@ -25,7 +25,7 @@ def location_selector(finest_level, gdf, key):
         }
     )
 
-    categories = categories.loc[:finest_level]
+    level_categories = level_categories.loc[:finest_level]
 
     gid_list = []
 
@@ -35,7 +35,7 @@ def location_selector(finest_level, gdf, key):
     for level in range(1, finest_level + 1):
         name_label = f"NAME_{level}"
         gid_label = f"GID_{level}"
-        cat = categories[level]
+        cat = level_categories[level]
 
         cur_name = st.selectbox(
             cat.title(),
