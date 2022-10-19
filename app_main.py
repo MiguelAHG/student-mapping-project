@@ -38,6 +38,10 @@ if __name__ == "__main__":
     if "pw_passed" not in st.session_state:
         st.session_state["pw_passed"] = False
 
+    # Refresh counter system
+    if "refresh_counter" not in st.session_state:
+        st.session_state["refresh_counter"] = 0
+
     if not st.session_state["pw_passed"]:
 
         pw_empty = st.empty()
@@ -83,7 +87,7 @@ if __name__ == "__main__":
     sheet_url = st.secrets["private_gsheets_url"]
 
     @st.cache(suppress_st_warning = True, allow_output_mutation = True)
-    def get_data():
+    def get_data(refresh_counter):
         """Obtain needed data."""
         # GADM data
         gpkg = "./geo_data/gadm36_PHL.gpkg"
@@ -106,10 +110,18 @@ if __name__ == "__main__":
 
         return gdf, students_df
 
+    # Increment the refresh counter when the Refresh button is pressed.
+    # This way, every time it's pressed, the app will be forced to read the data from the gsheets file again.
+    # The re-read will only occur directly after a press of the Refresh button.
+    with st.sidebar:
+        if st.button("Refresh data"):
+            st.session_state["refresh_counter"] += 1
+
     # Obtain data.
-    gdf, students_df = copy.deepcopy(get_data())
+    gdf, students_df = copy.deepcopy(get_data(st.session_state["refresh_counter"]))
 
     with st.sidebar:
+        
         # Radio buttons to select feature
         feature = st.radio(
             "App Feature",
