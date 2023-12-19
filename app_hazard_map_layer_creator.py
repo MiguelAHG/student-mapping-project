@@ -121,7 +121,7 @@ def hazard_map_feature(finest_level, gdf):
             value = "new_layer",
         )
 
-        @st.cache(suppress_st_warning = True)
+        @st.cache_data(ttl = None)
         def convert_df_for_download(df):
             """Convert a dataframe so that it can be downloaded using st.download_button()"""
             result = df.to_csv(index = False).encode("utf-8")

@@ -29,9 +29,10 @@ def report_generator_feature(finest_level, gdf, students_df):
 
     finest_name_label = f"NAME_{finest_level}"
 
-    @st.cache(suppress_st_warning = True)
-    def identify_affected(finest_level, finest_label, gdf, students_df, hazmap, name_labels):
-        """Based on the hazard map layer, obtain a DF of all students in the affected areas."""
+    @st.cache_data(ttl = None)
+    def identify_affected(finest_level, finest_label, _gdf, students_df, hazmap, name_labels):
+        """Based on the hazard map layer, obtain a DF of all students in the affected areas.
+        The _gdf parameter has a leading underscore so that it is not hashed by st.cache_data()."""
 
         # Set of fine-grained GIDs.
         gid_set = set(
@@ -52,8 +53,8 @@ def report_generator_feature(finest_level, gdf, students_df):
             # Then, update gid_set with the fine GIDs.
             for index, row in subset.iterrows():
                 coarse_gid = row["gid"]
-                fine_gid_series = gdf.loc[
-                    gdf[coarse_label] == coarse_gid,
+                fine_gid_series = _gdf.loc[
+                    _gdf[coarse_label] == coarse_gid,
                     finest_label
                 ]
                 gid_set.update(fine_gid_series)
@@ -76,7 +77,7 @@ def report_generator_feature(finest_level, gdf, students_df):
             .reset_index(drop = True)
             # Include location names
             .merge(
-                gdf[name_labels + [finest_label]],
+                _gdf[name_labels + [finest_label]],
                 how = "left",
                 left_on = finest_label,
                 right_on = finest_label
@@ -230,7 +231,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         .copy()
     )
 
-    @st.cache(suppress_st_warning = True)
+    @st.cache_data(ttl = None)
     def convert_df_for_download(df):
         """Convert a dataframe so that it can be downloaded using st.download_button()"""
         result = df.to_csv(index = False).encode("utf-8")

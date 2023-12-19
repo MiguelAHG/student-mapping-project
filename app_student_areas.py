@@ -51,12 +51,14 @@ def student_areas_feature(finest_level, gdf, students_df):
 
     st.markdown("## Table")
 
-    display_df = gdf_populated.loc[:, display_cols].reset_index(drop = True)
+    display_df = pd.DataFrame(
+        gdf_populated.loc[:, display_cols].reset_index(drop = True)
+    )
 
     st.dataframe(display_df)
 
     # Let the user download the table
-    @st.cache(suppress_st_warning = True)
+    @st.cache_data(ttl = None)
     def convert_df_for_download(df):
         """Convert a dataframe so that it can be downloaded using st.download_button()"""
         result = df.to_csv(index = False).encode("utf-8")

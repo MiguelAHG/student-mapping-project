@@ -86,7 +86,7 @@ if __name__ == "__main__":
     conn = connect(credentials = credentials)
     sheet_url = st.secrets["private_gsheets_url"]
 
-    @st.cache(suppress_st_warning = True, allow_output_mutation = True)
+    @st.cache_data(ttl = None)
     def get_data(refresh_counter):
         """Obtain needed data."""
         # GADM data
