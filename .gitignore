@@ -3,4 +3,5 @@
 /private/
 /.streamlit/secrets.toml
 *.bat
+*.command
 private_*.py
