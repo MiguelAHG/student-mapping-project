@@ -213,6 +213,7 @@ def report_generator_feature(finest_level, gdf, students_df):
         ]
         .reset_index(drop = True)
     )
+    display_df["student_number"] = display_df["student_number"].astype(str)
 
     st.dataframe(display_df)
 
