@@ -7,3 +7,4 @@ plotly==5.4.0
 bcrypt==3.2.0
 gsheetsdb==0.1.13
 google-auth==2.3.3
+pyparsing==3.0.9
